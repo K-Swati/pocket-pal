@@ -1,0 +1,762 @@
+<!doctype html>
+<html lang="en" data-theme="lavender"><head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Pocket Pal</title>
+<link rel="manifest" href="/static/manifest.webmanifest"><link rel="icon" href="/static/icon.svg">
+<meta name="theme-color" content="#8b6cf2" id="themeColor">
+<style>
+/* ---------- themes ---------- */
+:root,[data-theme=lavender]{--bg:linear-gradient(160deg,#f3eeff 0%,#fbeaff 50%,#ffe9f3 100%);--solid:#f6efff;--card:rgba(255,255,255,.82);--ink:#2b2735;--muted:#7a7486;
+ --accent:#8b6cf2;--accent-ink:#fff;--me:#e6deff;--bot:#ffffff;--line:#ebe4f5;--deco:rgba(139,108,242,.16);--warn-bg:#fff4e5;--warn:#8a4b00;--eye:#2b2440}
+[data-theme=sunrise]{--bg:linear-gradient(160deg,#fff3e2 0%,#ffdcd3 55%,#ffc9dc 100%);--solid:#ffe6dc;--accent:#ff7a59;--me:#ffe0d4;--line:#f6dccf;--deco:rgba(255,140,90,.2)}
+[data-theme=ocean]{--bg:linear-gradient(170deg,#e6f8ff 0%,#cdeefc 50%,#d9f5ef 100%);--solid:#dff4fb;--accent:#1f9ed6;--me:#d3eefc;--line:#cfe8f3;--deco:rgba(31,158,214,.16)}
+[data-theme=meadow]{--bg:linear-gradient(170deg,#f1fbea 0%,#daf5e2 55%,#fff8d8 100%);--solid:#e6f7e4;--accent:#3a9f62;--me:#d8f1df;--line:#d6ecd8;--deco:rgba(63,174,106,.17)}
+[data-theme=candy]{--bg:linear-gradient(160deg,#fff0f8 0%,#ffe1f0 50%,#fff5d6 100%);--solid:#ffe8f2;--accent:#f0508f;--me:#ffd7e8;--line:#f7d9e6;--deco:rgba(255,95,162,.18)}
+[data-theme=night]{--bg:linear-gradient(180deg,#121430 0%,#221f4a 60%,#382a5c 100%);--solid:#1d1c40;--card:rgba(38,36,74,.85);--ink:#eeeaff;--muted:#aaa5cf;
+ --accent:#9f8cff;--me:#3d3878;--bot:#2c2a55;--line:#3a3768;--deco:#fff;--warn-bg:#3a2a12;--warn:#ffc98a;--eye:#1b1838}
+
+/* ---------- base ---------- */
+*{box-sizing:border-box}html,body{height:100%}[hidden]{display:none!important}
+body{margin:0;font:16px/1.5 ui-rounded,"SF Pro Rounded",system-ui,-apple-system,"Segoe UI",sans-serif;color:var(--ink);background:var(--solid);
+ background-image:var(--bg);background-attachment:fixed;padding:env(safe-area-inset-top) 0 env(safe-area-inset-bottom);overflow:hidden;transition:background .6s}
+/* ---------- theme scenes: each theme has its own ambient animation (transform/opacity only, so it stays smooth) ---------- */
+.deco{position:fixed;inset:0;pointer-events:none;overflow:hidden;z-index:0}
+.deco>i{position:absolute;display:block;will-change:transform}
+/* lavender: drifting aurora glows + twinkling sparkles */
+.aurora{width:60vmax;height:60vmax;border-radius:50%;filter:blur(60px);opacity:.5;background:var(--c);left:var(--x);top:var(--y);animation:aurora var(--d) ease-in-out infinite alternate;animation-delay:var(--delay)}
+@keyframes aurora{from{transform:translate(-10%,-6%) scale(1)}to{transform:translate(16%,12%) scale(1.25)}}
+.sparkle{width:var(--s);height:var(--s);left:var(--x);top:var(--y);background:var(--c);clip-path:polygon(50% 0,61% 39%,100% 50%,61% 61%,50% 100%,39% 61%,0 50%,39% 39%);opacity:0;animation:sparkle var(--d) ease-in-out infinite;animation-delay:var(--delay)}
+@keyframes sparkle{0%,100%{opacity:0;transform:scale(.3) rotate(0)}50%{opacity:.9;transform:scale(1) rotate(90deg)}}
+/* sunrise: a soft sun with slowly turning rays + rising golden motes */
+.sun{right:-16vmax;top:-16vmax;width:52vmax;height:52vmax;border-radius:50%;background:radial-gradient(circle,rgba(255,222,150,.95) 0 20%,rgba(255,190,120,.38) 42%,transparent 68%);animation:breathe 7s ease-in-out infinite}
+@keyframes breathe{50%{transform:scale(1.06)}}
+.rays{right:-40vmax;top:-40vmax;width:100vmax;height:100vmax;border-radius:50%;background:repeating-conic-gradient(rgba(255,196,120,.25) 0 5deg,transparent 5deg 16deg);
+ -webkit-mask:radial-gradient(circle,#000 18%,transparent 66%);mask:radial-gradient(circle,#000 18%,transparent 66%);animation:spin 120s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+.mote{bottom:-10px;left:var(--x);width:var(--s);height:var(--s);border-radius:50%;background:#ffd27a;box-shadow:0 0 8px 2px rgba(255,200,110,.7);opacity:0;animation:rise var(--d) linear infinite;animation-delay:var(--delay)}
+@keyframes rise{0%{transform:translate(0,0);opacity:0}10%{opacity:.85}50%{transform:translate(var(--dx),-52vh)}85%{opacity:.6}100%{transform:translate(0,-108vh);opacity:0}}
+/* ocean: rolling waves + rising bubbles */
+.wave{left:0;bottom:0;width:200%;height:var(--h);background-repeat:repeat-x;background-size:50% 100%;opacity:var(--o);animation:waveMove var(--d) linear infinite}
+@keyframes waveMove{to{transform:translateX(-50%)}}
+.bubble{bottom:-30px;left:var(--x);width:var(--s);height:var(--s);border-radius:50%;border:1.5px solid rgba(31,158,214,.35);
+ background:radial-gradient(circle at 30% 30%,rgba(255,255,255,.95),rgba(160,220,255,.15) 60%);animation:bubble var(--d) ease-in infinite;animation-delay:var(--delay)}
+@keyframes bubble{0%{transform:translate(0,0)}25%{transform:translate(var(--dx),-28vh)}50%{transform:translate(0,-56vh)}75%{transform:translate(calc(var(--dx)*-1),-84vh)}100%{transform:translate(0,-114vh)}}
+/* meadow: drifting leaves + glowing fireflies */
+.leaf{top:-40px;left:var(--x);width:var(--s);height:calc(var(--s)*.6);border-radius:0 100% 0 100%;background:var(--c);opacity:.85;animation:fall var(--d) linear infinite;animation-delay:var(--delay)}
+@keyframes fall{0%{transform:translate(0,0) rotate(0)}25%{transform:translate(var(--dx),28vh) rotate(80deg)}50%{transform:translate(0,56vh) rotate(170deg)}75%{transform:translate(calc(var(--dx)*-1),84vh) rotate(260deg)}100%{transform:translate(0,114vh) rotate(350deg)}}
+.firefly{left:var(--x);top:var(--y);width:6px;height:6px;border-radius:50%;background:#fff6a8;box-shadow:0 0 10px 4px rgba(255,236,110,.75);
+ animation:wander var(--d) ease-in-out infinite alternate,glow 2.4s ease-in-out infinite alternate;animation-delay:var(--delay)}
+@keyframes wander{to{transform:translate(var(--dx),calc(var(--dx)*-.8))}}
+@keyframes glow{from{opacity:.1}to{opacity:.95}}
+/* candy: fluttering sprinkles + floating hearts */
+.sprinkle{top:-20px;left:var(--x);width:5px;height:14px;border-radius:3px;background:var(--c);animation:flutter var(--d) linear infinite;animation-delay:var(--delay)}
+@keyframes flutter{0%{transform:translate(0,0) rotate(0) rotateY(0)}50%{transform:translate(var(--dx),56vh) rotate(200deg) rotateY(180deg)}100%{transform:translate(0,114vh) rotate(400deg) rotateY(360deg)}}
+.heartf{bottom:-30px;left:var(--x);font-size:var(--s);line-height:1;color:var(--c);font-style:normal;opacity:0;animation:rise var(--d) linear infinite;animation-delay:var(--delay)}
+/* night: twinkling stars, a crescent moon, occasional shooting stars */
+.star{left:var(--x);top:var(--y);width:var(--s);height:var(--s);border-radius:50%;background:#fff;box-shadow:0 0 6px #fff;animation:twinkle var(--d) ease-in-out infinite;animation-delay:var(--delay)}
+@keyframes twinkle{0%,100%{opacity:.15;transform:scale(.6)}50%{opacity:.95;transform:scale(1)}}
+.moon{left:7%;top:15%;width:60px;height:60px;border-radius:50%;box-shadow:-13px 9px 0 0 #fff2bf;transform:rotate(-15deg);filter:drop-shadow(0 0 14px rgba(255,238,170,.6))}
+.shoot{left:var(--x);top:var(--y);width:130px;height:2px;border-radius:2px;background:linear-gradient(90deg,#fff,rgba(255,255,255,0));opacity:0;animation:shoot var(--d) linear infinite;animation-delay:var(--delay)}
+@keyframes shoot{0%{opacity:0;transform:rotate(-25deg) translateX(0)}1.5%{opacity:1}7%{opacity:0;transform:rotate(-25deg) translateX(-55vw)}100%{opacity:0;transform:rotate(-25deg) translateX(-55vw)}}
+
+.app{position:relative;z-index:1;max-width:640px;margin:0 auto;height:100%;display:flex;flex-direction:column;padding:10px 16px}
+header{display:flex;align-items:center;gap:8px;padding:4px 0}
+header h1{font-size:20px;margin:0;flex:1;font-weight:700;letter-spacing:.2px}
+.icon-btn{background:var(--card);border:1px solid var(--line);color:var(--ink);border-radius:999px;padding:6px 12px;font:inherit;font-size:13px;cursor:pointer;backdrop-filter:blur(8px)}
+#help{color:var(--warn);border-color:color-mix(in srgb,var(--warn) 40%,transparent)}
+
+/* ---------- character stage ---------- */
+.stage{display:flex;flex-direction:column;align-items:center;padding:6px 0 2px;transition:all .5s}
+.buddy{width:200px;height:200px;cursor:pointer;transition:width .5s,height .5s;-webkit-tap-highlight-color:transparent;position:relative}
+body.chatting .buddy{width:118px;height:118px}
+.buddy svg{width:100%;height:100%;overflow:visible}
+.ring{position:absolute;inset:8%;border-radius:50%;border:3px solid var(--accent);opacity:0;transform:scale(calc(.9 + var(--lvl,0)*.25))}
+.buddy[data-state=listening] .ring{opacity:.45;animation:ring 1.6s ease-out infinite}
+@keyframes ring{0%{box-shadow:0 0 0 0 color-mix(in srgb,var(--accent) 40%,transparent)}100%{box-shadow:0 0 0 22px transparent}}
+.status{font-size:13px;color:var(--muted);min-height:1.3em;margin-top:2px}
+
+#bodyGroup{transform-box:fill-box;transform-origin:50% 100%;animation:bob 3.2s ease-in-out infinite}
+@keyframes bob{0%,100%{transform:translateY(0) scale(1,1)}50%{transform:translateY(-5px) scale(.98,1.02)}}
+.buddy[data-state=speaking] #bodyGroup{animation:bob 1.1s ease-in-out infinite}
+.buddy[data-state=listening] #bodyGroup{animation:lean 2.4s ease-in-out infinite}
+@keyframes lean{0%,100%{transform:rotate(-3deg)}50%{transform:rotate(3deg)}}
+.buddy.bounce #bodyGroup{animation:hop .6s ease}
+@keyframes hop{0%{transform:scale(1)}30%{transform:translateY(-16px) scale(.94,1.08)}60%{transform:translateY(0) scale(1.08,.92)}100%{transform:scale(1)}}
+#sprout{transform-box:fill-box;transform-origin:50% 100%;animation:sway 4s ease-in-out infinite}
+@keyframes sway{0%,100%{transform:rotate(-8deg)}50%{transform:rotate(8deg)}}
+#face{transition:transform .4s ease}
+.buddy[data-state=thinking] #face{transform:translate(-5px,-6px)}
+.eye{transform-box:fill-box;transform-origin:center;transition:transform .12s}
+.buddy.blink .eye{transform:scaleY(.08)}
+.buddy[data-state=listening] .eye{transform:scale(1.12)}
+.buddy[data-state=care] .eye{transform:scaleY(.82)}
+.buddy[data-state=happy] .eye-open{display:none}.buddy:not([data-state=happy]) .eye-happy{display:none}
+.brows{opacity:0;transition:opacity .3s}.buddy[data-state=care] .brows{opacity:1}
+#dots{opacity:0;transition:opacity .3s}.buddy[data-state=thinking] #dots{opacity:1}
+#dots circle{animation:dot 1.2s ease-in-out infinite}#dots circle:nth-child(2){animation-delay:.2s}#dots circle:nth-child(3){animation-delay:.4s}
+@keyframes dot{0%,100%{transform:translateY(0);opacity:.4}50%{transform:translateY(-5px);opacity:1}}
+.art{width:100%;height:100%}
+/* per-character touches (transform origins are in the 200x200 drawing's units) */
+#sprout,#tail,#ears,#earL,#earR{transform-box:view-box}
+#tail{transform-origin:150px 166px;animation:swish 2.6s ease-in-out infinite}
+@keyframes swish{0%,100%{transform:rotate(-6deg)}50%{transform:rotate(12deg)}}
+#ears{transform-origin:100px 80px;transition:transform .3s}
+.buddy[data-state=listening] #ears{transform:translateY(-4px) scale(1.05)}
+[data-char=bao] #ears{transform-origin:100px 60px}
+.buddy[data-state=listening] [data-char=bao] #ears{animation:wiggle .5s ease-in-out infinite alternate}
+@keyframes wiggle{from{transform:rotate(-4deg)}to{transform:rotate(4deg)}}
+#earL{transform-origin:72px 74px;animation:earSway 4s ease-in-out infinite;transform:rotate(-10deg)}
+#earR{transform-origin:128px 74px;transition:transform .35s cubic-bezier(.3,1.6,.5,1);transform:rotate(58deg)}
+@keyframes earSway{0%,100%{transform:rotate(-10deg)}50%{transform:rotate(-4deg)}}
+.buddy[data-state=listening] #earR,.buddy[data-state=happy] #earR{transform:rotate(10deg)}
+.buddy:not([data-state=idle]) #teeth{display:none}
+[data-char=nimbus] #bodyGroup{animation:floaty 4.5s ease-in-out infinite}
+@keyframes floaty{0%,100%{transform:translateY(0)}50%{transform:translateY(-9px)}}
+.buddy[data-state=speaking] [data-char=nimbus] #bodyGroup{animation:floaty 1.6s ease-in-out infinite}
+.chars{display:grid;grid-template-columns:repeat(auto-fill,minmax(62px,1fr));gap:8px;width:100%}
+.chars button{background:var(--card);border:2px solid var(--line);border-radius:16px;padding:6px 4px 4px;cursor:pointer;color:var(--ink);font:inherit;font-size:12px;display:flex;flex-direction:column;align-items:center;gap:2px}
+.chars button svg{width:50px;height:50px;overflow:visible}
+.chars button.sel{border-color:var(--accent);box-shadow:0 0 0 3px color-mix(in srgb,var(--accent) 25%,transparent)}
+#armL,#armR{transform-box:fill-box}
+#armL{transform-origin:100% 50%}#armR{transform-origin:0% 50%}
+.buddy.wave #armR{animation:wave .45s ease-in-out 4 alternate}
+@keyframes wave{from{transform:rotate(10deg)}to{transform:rotate(-55deg)}}
+.heart{position:absolute;font-size:20px;pointer-events:none;animation:heart 1.2s ease-out forwards}
+@keyframes heart{from{opacity:1;transform:translate(0,0) scale(.6)}to{opacity:0;transform:translate(var(--dx),-90px) scale(1.2)}}
+
+/* ---------- first-time intro ---------- */
+body.intro-on .app{opacity:0;pointer-events:none;transition:none}
+.app{transition:opacity .6s ease}
+.intro{position:fixed;inset:0;z-index:5;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:20px;padding:24px 16px}
+.intro .buddy{width:min(240px,60vw);height:min(240px,60vw)}
+.buddy-spot{width:200px;height:200px;flex:none;transition:width .5s,height .5s}
+body.chatting .buddy-spot{width:118px;height:118px}
+#shadow{transform-box:fill-box;transform-origin:center}
+.walker{will-change:transform}
+.introFx{position:fixed;inset:0;pointer-events:none;z-index:6;overflow:hidden}
+.introFx>*{position:fixed;left:0;top:0;will-change:transform,opacity}
+.wand{width:10px;height:112px;margin:-112px 0 0 -5px;border-radius:5px;transform-origin:50% 100%;
+ background:linear-gradient(#6a4bc4 0 66%,#f6d77a 66% 74%,#4a2f94 74%);box-shadow:0 4px 12px rgba(40,20,90,.25)}
+.wand .glow{position:absolute;left:50%;top:0;width:70px;height:70px;margin:-40px 0 0 -35px;border-radius:50%;background:radial-gradient(circle,rgba(255,240,180,.95) 0 18%,rgba(255,220,130,.4) 40%,transparent 70%);animation:pulseGlow .6s ease-in-out infinite alternate}
+.wand .tip{position:absolute;left:50%;top:0;width:34px;height:34px;margin:-22px 0 0 -17px;background:linear-gradient(135deg,#fff6c2,#ffcc3d);clip-path:polygon(50% 0,61% 35%,98% 35%,68% 57%,79% 91%,50% 70%,21% 91%,32% 57%,2% 35%,39% 35%)}
+@keyframes pulseGlow{to{transform:scale(1.25)}}
+.trail,.spark{font-size:var(--s);line-height:1;width:1em;height:1em;margin:-.5em 0 0 -.5em;text-align:center;font-style:normal;color:var(--c);text-shadow:0 0 6px var(--c),0 0 14px rgba(255,255,255,.9)}
+.trail{animation:trail .95s ease-out forwards}
+@keyframes trail{from{opacity:1;transform:translate(var(--x),var(--y)) scale(1) rotate(0)}to{opacity:0;transform:translate(var(--x),calc(var(--y) + 30px)) scale(.15) rotate(140deg)}}
+
+.orb{width:46px;height:46px;margin:-23px 0 0 -23px;border-radius:50%;background:radial-gradient(circle,#fff 0 28%,#fff1bf 50%,rgba(255,206,120,0) 72%);box-shadow:0 0 34px 14px rgba(255,228,150,.75)}
+.ring{width:70px;height:70px;margin:-35px 0 0 -35px;border-radius:50%;border:5px solid #fff;box-shadow:0 0 16px 4px rgba(255,205,90,.9),inset 0 0 14px rgba(255,205,90,.8)}
+[data-theme=night] .ring{border-color:rgba(220,210,255,.9)}
+.introBubble{position:relative;max-width:360px;min-height:3.2em;background:var(--card);color:var(--ink);border-radius:22px;padding:14px 20px;font-size:18px;line-height:1.45;text-align:center;
+ box-shadow:0 10px 30px rgba(0,0,0,.1);backdrop-filter:blur(8px);opacity:0;transform:translateY(8px) scale(.96);transition:opacity .35s,transform .35s}
+.introBubble.show{opacity:1;transform:none}
+.introBubble::before{content:"";position:absolute;top:-9px;left:50%;margin-left:-10px;border:10px solid transparent;border-top:0;border-bottom-color:var(--card)}
+.introSkip{position:fixed;right:16px;bottom:calc(16px + env(safe-area-inset-bottom));background:var(--card);border:1px solid var(--line);color:var(--ink);border-radius:999px;padding:8px 16px;font:inherit;font-size:14px;cursor:pointer;backdrop-filter:blur(8px)}
+
+/* ---------- chat ---------- */
+#log{flex:1;overflow-y:auto;display:flex;flex-direction:column;gap:10px;padding:8px 2px;scroll-behavior:smooth}
+.msg{max-width:85%;padding:10px 14px;border-radius:20px;white-space:pre-wrap;word-wrap:break-word;animation:pop .3s ease;box-shadow:0 2px 10px rgba(0,0,0,.05)}
+@keyframes pop{from{opacity:0;transform:translateY(8px) scale(.97)}to{opacity:1;transform:none}}
+.me{align-self:flex-end;background:var(--me);border-bottom-right-radius:6px}
+.bot{align-self:flex-start;background:var(--bot);border-bottom-left-radius:6px}
+.typing .dots{display:inline-flex;gap:4px;padding:4px 2px}
+.typing .dots i{width:7px;height:7px;border-radius:50%;background:var(--muted);animation:dot 1.2s ease-in-out infinite}
+.typing .dots i:nth-child(2){animation-delay:.2s}.typing .dots i:nth-child(3){animation-delay:.4s}
+.banner{background:var(--warn-bg);color:var(--warn);border-radius:16px;padding:12px 14px;font-size:14px}
+.banner b{display:block;margin-bottom:4px}
+.controls{padding:8px 0 6px;display:flex;flex-direction:column;align-items:center;gap:8px}
+#talk{width:76px;height:76px;border-radius:50%;border:0;background:var(--accent);color:var(--accent-ink);font-size:28px;cursor:pointer;
+ box-shadow:0 8px 24px color-mix(in srgb,var(--accent) 40%,transparent);transition:transform .15s}
+#talk:active{transform:scale(.94)}#talk.on{animation:pulse 1.4s infinite;background:#e0577a}#talk:disabled{opacity:.5}
+@keyframes pulse{0%,100%{transform:scale(1)}50%{transform:scale(1.07)}}
+.row{display:flex;gap:8px;width:100%}
+#text{flex:1;padding:12px 16px;border:1px solid var(--line);border-radius:999px;background:var(--card);color:var(--ink);font:inherit;backdrop-filter:blur(8px)}
+#send{border:0;border-radius:999px;padding:0 18px;background:var(--accent);color:var(--accent-ink);font:inherit;font-weight:600;cursor:pointer}
+
+/* ---------- sheets ---------- */
+.overlay{position:fixed;inset:0;background:rgba(20,16,40,.35);display:flex;align-items:center;justify-content:center;padding:16px;z-index:9;backdrop-filter:blur(3px)}
+.sheet{background:var(--solid);background-image:linear-gradient(var(--card),var(--card));border-radius:24px;padding:22px;max-width:440px;width:100%;max-height:90vh;overflow:auto;box-shadow:0 20px 60px rgba(0,0,0,.2);animation:pop .3s ease}
+.sheet h2{margin:0 0 10px;font-size:21px}.sheet p{margin:0 0 10px;color:var(--muted);font-size:15px}
+.sheet label{display:flex;gap:8px;align-items:flex-start;margin:12px 0;font-size:15px}
+.sheet button.primary{width:100%;border:0;border-radius:14px;padding:13px;background:var(--accent);color:var(--accent-ink);font:inherit;font-weight:600;cursor:pointer}
+.sheet button.primary:disabled{opacity:.5}
+.sheet .line{padding:8px 0;border-top:1px solid var(--line)}
+.menu>button{display:block;width:100%;text-align:left;background:none;border:0;border-top:1px solid var(--line);padding:12px 0;font:inherit;color:var(--ink);cursor:pointer}
+.opt{display:flex;align-items:center;justify-content:space-between;gap:10px;border-top:1px solid var(--line);padding:10px 0;flex-wrap:wrap}
+.seg{display:flex;border:1px solid var(--line);border-radius:999px;overflow:hidden}
+.seg button{border:0;background:none;color:var(--ink);padding:6px 14px;font:inherit;cursor:pointer}
+.seg button.sel{background:var(--accent);color:var(--accent-ink)}
+.swatches{display:flex;gap:8px;flex-wrap:wrap}
+.swatches button{width:34px;height:34px;border-radius:50%;border:3px solid transparent;cursor:pointer;padding:0;box-shadow:0 2px 6px rgba(0,0,0,.12)}
+.swatches button.sel{border-color:var(--ink)}
+.danger{color:#d13b5c!important}
+@media (prefers-reduced-motion:reduce){*,*::before,*::after{animation:none!important;transition:none!important}}
+</style></head><body>
+<div class="deco" id="deco"></div>
+<div class="app">
+ <header>
+  <h1 id="title">Pocket Pal</h1>
+  <button class="icon-btn" id="help">Need help now?</button>
+  <button class="icon-btn" id="menuBtn" aria-label="Settings">⋯</button>
+ </header>
+
+ <div class="stage">
+  <div class="buddy" id="buddy" data-state="idle" role="img" aria-label="Pocket Pal, your companion">
+   <div class="ring"></div>
+   <div class="art" id="art"></div>
+  </div>
+  <div class="status" id="hint">Tap to talk</div>
+ </div>
+
+ <div id="log" aria-live="polite"></div>
+ <div class="controls">
+  <button id="talk" aria-label="Tap to talk">🎙️</button>
+  <div class="row"><input id="text" placeholder="Or type here…" autocomplete="off"><button id="send">Send</button></div>
+ </div>
+</div>
+
+<div class="intro" id="intro" hidden aria-live="polite">
+ <div class="introFx" id="introFx"></div>
+ <div class="walker" id="walker"></div>
+ <div class="introBubble" id="introBubble"></div>
+ <button class="introSkip" id="introSkip">Skip intro ›</button>
+</div>
+
+<div class="overlay" id="welcome" hidden><div class="sheet">
+ <h2 id="welcomeTitle">Hi, I'm Pocket Pal 💜</h2>
+ <p>I'm here to keep you company and listen whenever things feel heavy, lonely or just quiet.</p>
+ <p><b>I'm an AI, not a therapist or doctor.</b> I can't give medical advice, and I'm not a substitute for professional help. If you're in danger or thinking about harming yourself, please contact a crisis line or emergency services.</p>
+ <p>Our chats are saved only on this device. You can erase them anytime from the ⋯ menu.</p>
+ <label><input type="checkbox" id="agree"> I'm 18 or older and I understand Pocket Pal is an AI, not professional help.</label>
+ <button class="primary" id="start" disabled>Let's talk</button>
+</div></div>
+
+<div class="overlay" id="helpSheet" hidden><div class="sheet">
+ <h2>You don't have to go through this alone</h2>
+ <p>These people are trained to help, any time of day:</p>
+ <div id="lines"></div>
+ <button class="primary" id="closeHelp" style="margin-top:12px">Back to chat</button>
+</div></div>
+
+<div class="overlay" id="menu" hidden><div class="sheet menu">
+ <h2>Settings</h2>
+ <div class="opt"><span>Character</span><div class="chars" id="chars"></div></div>
+ <div class="opt"><span>Theme</span><div class="swatches" id="swatches"></div></div>
+ <div class="opt"><span>Voice</span>
+  <div class="seg" id="voiceSeg"><button data-v="female">Female</button><button data-v="male">Male</button></div></div>
+ <button id="toggleVoice"></button>
+ <button id="toggleHands"></button>
+ <button id="replayIntro">Watch the intro again</button>
+ <button id="newChat">Start a fresh chat (keep memories)</button>
+ <button id="forget" class="danger">Forget everything about me</button>
+ <button id="closeMenu">Close</button>
+</div></div>
+
+<script src="/static/characters.js"></script>
+<script>
+const $ = id => document.getElementById(id);
+const store = {
+  get(k, d){ try { const v = localStorage.getItem('friend.'+k); return v === null ? d : JSON.parse(v); } catch { return d; } },
+  set(k, v){ try { localStorage.setItem('friend.'+k, JSON.stringify(v)); } catch {} },
+  clear(){ try { Object.keys(localStorage).filter(k => k.startsWith('friend.') && k !== 'friend.theme' && k !== 'friend.character').forEach(k => localStorage.removeItem(k)); } catch {} },
+};
+const region = (navigator.language.split('-')[1] || '').toUpperCase() || null;
+let messages = store.get('messages', []), memory = store.get('memory', ''), voiceOn = store.get('voice', true), voiceKind = store.get('voiceKind', 'female');
+let health = {stt:false, tts:false}, busy = false, sinceSummary = 0;
+
+// ---------- themes ----------
+const THEMES = {lavender:['#c9b8ff','#8b6cf2'], sunrise:['#ffd29d','#ff7a59'], ocean:['#9fe3ff','#1f9ed6'],
+                meadow:['#c3f1bb','#3a9f62'], candy:['#ffc2dc','#f0508f'], night:['#3a3768','#121430']};
+function applyTheme(t){
+  if (!THEMES[t]) t = 'lavender';
+  document.documentElement.dataset.theme = t; store.set('theme', t);
+  $('themeColor').content = THEMES[t][1];
+  document.querySelectorAll('#swatches button').forEach(b => b.classList.toggle('sel', b.dataset.t === t));
+  buildDeco(t);
+}
+const rnd = (a, b) => a + Math.random() * (b - a), pick = a => a[Math.floor(Math.random() * a.length)];
+function dot(cls, vars, text){ const e = document.createElement('i'); e.className = cls;
+  for (const [k, v] of Object.entries(vars || {})) e.style.setProperty('--' + k, v); if (text) e.textContent = text; return e; }
+function waveSVG(fill){ return `url("data:image/svg+xml,${encodeURIComponent(`<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 1200 100' preserveAspectRatio='none'><path d='M0 50 Q150 10 300 50 T600 50 T900 50 T1200 50 V100 H0Z' fill='${fill}'/></svg>`)}")`; }
+const SCENES = {
+  lavender(d){
+    [['#c9b3ff','-25%','-25%'],['#ffc3e6','45%','5%'],['#b8d6ff','5%','55%']].forEach(([c,x,y]) => d.append(dot('aurora', {c, x, y, d: rnd(14,22)+'s', delay: -rnd(0,10)+'s'})));
+    for (let i = 0; i < 18; i++) d.append(dot('sparkle', {x: rnd(2,98)+'%', y: rnd(2,98)+'%', s: rnd(8,18)+'px', c: i % 3 ? '#ffffff' : '#c2adff', d: rnd(3,7)+'s', delay: -rnd(0,7)+'s'}));
+  },
+  sunrise(d){
+    d.append(dot('rays'), dot('sun'));
+    for (let i = 0; i < 16; i++) d.append(dot('mote', {x: rnd(0,100)+'%', s: rnd(3,7)+'px', d: rnd(14,26)+'s', delay: -rnd(0,26)+'s', dx: rnd(-40,40)+'px'}));
+  },
+  ocean(d){
+    [['rgba(31,158,214,.16)','150px','28s','1'],['rgba(80,190,230,.18)','115px','19s','1'],['rgba(255,255,255,.5)','80px','13s','.8']].forEach(([f,h,dur,o], i) => {
+      const w = dot('wave', {h, d: dur, o}); w.style.backgroundImage = waveSVG(f); if (i === 1) w.style.animationDirection = 'reverse'; d.append(w); });
+    for (let i = 0; i < 14; i++) d.append(dot('bubble', {x: rnd(0,100)+'%', s: rnd(8,26)+'px', d: rnd(12,22)+'s', delay: -rnd(0,22)+'s', dx: rnd(-25,25)+'px'}));
+  },
+  meadow(d){
+    for (let i = 0; i < 12; i++) d.append(dot('leaf', {x: rnd(0,100)+'%', s: rnd(16,28)+'px', c: pick(['#7fcf8a','#a6dd8b','#5fb878','#f2cf63','#9bd67c']), d: rnd(14,24)+'s', delay: -rnd(0,24)+'s', dx: rnd(-70,70)+'px'}));
+    for (let i = 0; i < 10; i++) d.append(dot('firefly', {x: rnd(3,97)+'%', y: rnd(40,95)+'%', d: rnd(5,10)+'s', delay: -rnd(0,10)+'s', dx: rnd(-50,50)+'px'}));
+  },
+  candy(d){
+    for (let i = 0; i < 26; i++) d.append(dot('sprinkle', {x: rnd(0,100)+'%', c: pick(['#ff7eb6','#ffd166','#7bdff2','#b39cff','#95e1a4']), d: rnd(9,16)+'s', delay: -rnd(0,16)+'s', dx: rnd(-50,50)+'px'}));
+    for (let i = 0; i < 8; i++) d.append(dot('heartf', {x: rnd(0,100)+'%', s: rnd(14,26)+'px', c: pick(['#ff7eb6','#ff9cc8','#ffb3d1']), d: rnd(14,24)+'s', delay: -rnd(0,24)+'s', dx: rnd(-30,30)+'px'}, '♥'));
+  },
+  night(d){
+    d.append(dot('moon'));
+    for (let i = 0; i < 45; i++) d.append(dot('star', {x: rnd(0,100)+'%', y: rnd(0,100)+'%', s: rnd(1.5,4)+'px', d: rnd(2,6)+'s', delay: -rnd(0,6)+'s'}));
+    for (let i = 0; i < 2; i++) d.append(dot('shoot', {x: rnd(55,105)+'%', y: rnd(0,35)+'%', d: rnd(9,15)+'s', delay: rnd(1,9)+'s'}));
+  },
+};
+function buildDeco(t){ const d = $('deco'); d.innerHTML = ''; d.dataset.scene = t; (SCENES[t] || SCENES.lavender)(d); }
+Object.entries(THEMES).forEach(([t,[a,b]]) => { const btn = document.createElement('button'); btn.dataset.t = t; btn.title = t[0].toUpperCase()+t.slice(1);
+  btn.setAttribute('aria-label', btn.title + ' theme'); btn.style.background = `linear-gradient(135deg,${a},${b})`;
+  btn.onclick = () => { applyTheme(t); cheer(); }; $('swatches').appendChild(btn); });
+applyTheme(store.get('theme', matchMedia('(prefers-color-scheme: dark)').matches ? 'night' : 'lavender'));
+
+// ---------- the character ----------
+const buddy = $('buddy');
+let charKey = CHARACTERS[store.get('character', 'mochi')] ? store.get('character', 'mochi') : 'mochi';
+const charName = () => CHARACTERS[charKey].name;
+function applyCharacter(key){
+  charKey = CHARACTERS[key] ? key : 'mochi'; store.set('character', charKey);
+  $('art').innerHTML = characterSVG(charKey, true);
+  $('title').textContent = charName(); document.title = charName() + ' · Pocket Pal';
+  $('welcomeTitle').textContent = "Hi, I'm " + charName() + ' 💜';
+  buddy.setAttribute('aria-label', charName() + ', your companion');
+  document.querySelectorAll('#chars button').forEach(b => b.classList.toggle('sel', b.dataset.c === charKey));
+}
+Object.entries(CHARACTERS).forEach(([k, c]) => { const b = document.createElement('button'); b.dataset.c = k; b.title = c.name + ', ' + c.kind;
+  b.innerHTML = characterSVG(k, false) + '<span></span>'; b.querySelector('span').textContent = c.name;
+  b.onclick = () => { if (k === charKey) return; applyCharacter(k); render(); cheer(); wave();
+    if (voiceOn && !recorder && !recognizer) speak("Hi! I'm " + c.name + '.'); };
+  $('chars').appendChild(b); });
+applyCharacter(charKey);
+let state = 'idle', mouthLevel = 0, speakingFake = false;
+function setState(s){ state = s; buddy.dataset.state = s; if (s !== 'speaking') setMouth(0); }
+function setMouth(v){ mouthLevel = v; const open = v > .06;
+  $('smile').style.display = open ? 'none' : ''; $('mouthO').style.display = open ? '' : 'none';
+  $('mouthShape').setAttribute('ry', 2 + v*9); $('mouthShape').setAttribute('rx', 8 + v*2); $('tongue').setAttribute('cy', 136 + v*6); }
+(function blinkLoop(){ setTimeout(() => { buddy.classList.add('blink'); setTimeout(() => buddy.classList.remove('blink'), 140); blinkLoop(); }, 2200 + Math.random()*3500); })();
+// eyes follow the pointer a little while idle
+addEventListener('pointermove', e => { if (state !== 'idle' && state !== 'happy') return; const r = buddy.getBoundingClientRect();
+  const dx = Math.max(-1, Math.min(1, (e.clientX - (r.left + r.width/2)) / 300)), dy = Math.max(-1, Math.min(1, (e.clientY - (r.top + r.height/2)) / 300));
+  $('face').style.transform = `translate(${dx*5}px,${dy*4}px)`; });
+function resetFace(){ $('face').style.transform = ''; }
+function burst(){ const hs = ['💜','💖','✨','💛','🌸'];
+  for (let i = 0; i < 4; i++){ const h = document.createElement('span'); h.className = 'heart'; h.textContent = hs[Math.floor(Math.random()*hs.length)];
+    h.style.left = (35 + Math.random()*30) + '%'; h.style.top = '25%'; h.style.setProperty('--dx', (Math.random()*80-40)+'px'); h.style.animationDelay = (i*.12)+'s';
+    buddy.appendChild(h); setTimeout(() => h.remove(), 1600); } }
+function cheer(){ if (busy) return; const prev = state; setState('happy'); buddy.classList.remove('bounce'); void buddy.offsetWidth; buddy.classList.add('bounce'); burst();
+  setTimeout(() => { buddy.classList.remove('bounce'); if (state === 'happy') setState(prev === 'happy' ? 'idle' : prev); }, 900); }
+function wave(){ buddy.classList.add('wave'); setState('happy'); setTimeout(() => { buddy.classList.remove('wave'); if (state === 'happy') setState('idle'); }, 1900); }
+buddy.onclick = cheer;
+
+// ---------- audio playback ----------
+// One shared player, unlocked on the first tap, so browsers allow it to play later replies.
+// Sound never goes through Web Audio: if the audio engine is paused, the voice is still heard.
+const player = new Audio(); player.preload = 'auto';
+const SILENT = 'data:audio/wav;base64,UklGRkQDAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YSADAACAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgA==';
+let audioUnlocked = false, audioCtx = null;
+function ctx(){ try { audioCtx = audioCtx || new (window.AudioContext || window.webkitAudioContext)(); if (audioCtx.state === 'suspended') audioCtx.resume(); } catch {} return audioCtx; }
+function unlockAudio(){
+  ctx(); if (audioUnlocked) return;
+  player.src = SILENT; player.muted = false;
+  player.play().then(() => { audioUnlocked = true; }).catch(() => {});
+  try { speechSynthesis.speak(new SpeechSynthesisUtterance('')); } catch {}
+}
+addEventListener('pointerdown', unlockAudio, {capture:true}); addEventListener('keydown', unlockAudio, {capture:true});
+
+// Loudness envelope worked out from the file itself (every 40 ms), used only to move the mouth.
+async function envelope(blob){
+  try { const c = ctx(); if (!c) return null; const buf = await c.decodeAudioData(await blob.arrayBuffer());
+    const d = buf.getChannelData(0), step = Math.floor(buf.sampleRate * .04), out = [];
+    for (let i = 0; i < d.length; i += step) { let s = 0; const end = Math.min(d.length, i + step); for (let j = i; j < end; j++) s += d[j]*d[j]; out.push(Math.sqrt(s / (end - i))); }
+    const peak = Math.max(...out, 1e-4); return out.map(v => Math.min(1, v / peak * 1.1)); } catch { return null; }
+}
+function lipSyncPlayer(env){ let smooth = 0;
+  (function tick(){ if (player.paused || player.ended) { setMouth(0); return; }
+    const lvl = env ? (env[Math.floor(player.currentTime / .04)] || 0) : .35 + .35*Math.sin(performance.now()/70);
+    smooth = smooth*.5 + lvl*.5; setMouth(smooth); requestAnimationFrame(tick); })(); }
+function lipSyncFake(){ speakingFake = true; let boost = 0;
+  (function tick(){ if (!speakingFake) { setMouth(0); return; } const t = performance.now();
+    setMouth(Math.max(0, .3 + .3*Math.sin(t/75) + .2*Math.sin(t/31) + boost)); boost *= .9; requestAnimationFrame(tick); })();
+  return () => { boost = .3; }; }
+
+// ---------- chat ----------
+const fallbackLines = [{name:'Find a helpline near you', contact:'findahelpline.com'},{name:'If you are in immediate danger', contact:'Call your local emergency number'}];
+const knownLines = {US:[{name:'988 Suicide & Crisis Lifeline',contact:'Call or text 988'}],CA:[{name:'9-8-8 Suicide Crisis Helpline',contact:'Call or text 988'}],
+ GB:[{name:'Samaritans',contact:'Call 116 123'},{name:'Shout',contact:'Text SHOUT to 85258'}],IE:[{name:'Samaritans',contact:'Call 116 123'}],
+ IN:[{name:'Tele-MANAS',contact:'Call 14416 or 1-800-891-4416'}],AU:[{name:'Lifeline',contact:'Call 13 11 14'}],NZ:[{name:'Need to talk?',contact:'Call or text 1737'}]};
+const linesFor = r => (knownLines[r] || fallbackLines.slice(0,1)).concat(fallbackLines.slice(1));
+
+function bubble(cls, text){ const d = document.createElement('div'); d.className = 'msg ' + cls; d.textContent = text; $('log').appendChild(d); $('log').scrollTop = 1e9; }
+function banner(lines){ const d = document.createElement('div'); d.className = 'banner';
+  d.innerHTML = '<b>Support is available right now</b>'; lines.forEach(l => { const p = document.createElement('div'); p.textContent = l.name + ': ' + l.contact; d.appendChild(p); });
+  $('log').appendChild(d); $('log').scrollTop = 1e9; }
+function render(){ $('log').innerHTML = ''; if (!messages.length) bubble('bot', greeting()); messages.forEach(m => bubble(m.role === 'user' ? 'me' : 'bot', m.content));
+  document.body.classList.toggle('chatting', messages.length > 0); }
+function greeting(){ const h = new Date().getHours(); const t = h < 5 ? "It's late, I'm glad you're here." : h < 12 ? 'Good morning!' : h < 18 ? 'Hey there!' : 'Good evening.';
+  return t + " I'm " + charName() + ", and I'm here to listen. How are you feeling?"; }
+function hint(t){ $('hint').textContent = t; }
+function idleHint(){ if (recorder || recognizer) return; hint(health.stt || BrowserSR ? 'Tap the mic and just talk, or tap me 💜' : 'Type below to chat, or tap me 💜'); }
+
+async function send(text){
+  text = text.trim(); if (!text || busy) return; busy = true; $('talk').disabled = true;
+  messages.push({role:'user', content:text}); bubble('me', text); document.body.classList.add('chatting');
+  setState('thinking'); resetFace(); hint('Thinking…');
+  let crisis = false;
+  try {
+    const r = await fetch('/api/chat', {method:'POST', headers:{'content-type':'application/json'},
+      body: JSON.stringify({messages: messages.slice(-40), memory, region, name: charName()})});
+    const data = r.ok ? await r.json() : {reply:"Sorry, I couldn't hear you properly just then. Could you try again?", crisis:false, helplines:[]};
+    crisis = data.crisis;
+    messages.push({role:'assistant', content:data.reply});
+    store.set('messages', messages.slice(-60));
+    if (++sinceSummary >= 4) { sinceSummary = 0; summarize(); }
+    busy = false; $('talk').disabled = false;
+    // Not awaited: you can talk or type again while Pocket Pal is speaking.
+    if (crisis || !voiceOn) {            // safety info is never delayed by the voice
+      bubble('bot', data.reply); if (crisis) banner(data.helplines); speak(data.reply, crisis);
+    } else {
+      speak(data.reply, false, new Caption(typingBubble(), data.reply));   // text appears as it is spoken
+    }
+    return;
+  } catch { bubble('bot', "I can't reach the server right now. Check your connection and try again?"); }
+  busy = false; $('talk').disabled = false; setState(crisis ? 'care' : 'idle'); idleHint();
+}
+async function summarize(){
+  try { const r = await fetch('/api/summarize', {method:'POST', headers:{'content-type':'application/json'}, body: JSON.stringify({messages: messages.slice(-40), memory})});
+    if (r.ok) { memory = (await r.json()).memory; store.set('memory', memory); } } catch {}
+}
+// ---------- speaking, with captions in sync ----------
+function typingBubble(){ const d = document.createElement('div'); d.className = 'msg bot typing'; d.setAttribute('aria-label', 'Pocket Pal is typing');
+  d.innerHTML = '<span class="dots"><i></i><i></i><i></i></span>'; $('log').appendChild(d); $('log').scrollTop = 1e9; return d; }
+class Caption {
+  constructor(el, full){ this.el = el; this.full = full; }
+  set(text){ if (this.el.classList.contains('typing')) this.el.classList.remove('typing'); if (this.el.textContent !== text) { this.el.textContent = text; $('log').scrollTop = 1e9; } }
+  finish(){ this.set(this.full); }
+}
+// Short sentences are merged so the voice doesn't sound choppy.
+function splitSentences(t){
+  const raw = (t.match(/[^.!?…]+[.!?…]+["'”’)\]]*|[^.!?…]+$/g) || [t]).map(x => x.trim()).filter(Boolean), out = [];
+  for (const x of raw) { if (out.length && out[out.length-1].length < 25) out[out.length-1] += ' ' + x; else out.push(x); }
+  return out.length ? out : [t];
+}
+async function fetchAudio(text){
+  try { const ctl = new AbortController(); const t = setTimeout(() => ctl.abort(), 8000);
+    const r = await fetch('/api/speak', {method:'POST', headers:{'content-type':'application/json'}, body: JSON.stringify({text, voice: voiceKind}), signal: ctl.signal});
+    clearTimeout(t); if (r.status !== 200) return null;
+    const blob = await r.blob(); return {url: URL.createObjectURL(blob), env: await envelope(blob)};
+  } catch { return null; }
+}
+function playClip(clip, onProgress){
+  return new Promise(res => {
+    let fin = false; const end = ok => { if (fin) return; fin = true; clearInterval(iv); clearTimeout(cap); player.onended = player.onerror = player.onpause = null; res(ok); };
+    player.src = clip.url; player.muted = false; player.volume = 1;
+    player.onended = () => { onProgress(1); end(true); }; player.onpause = () => end(true); player.onerror = () => end(false);
+    const iv = setInterval(() => { if (player.duration > 0) onProgress(Math.min(1, (player.currentTime + .15) / player.duration)); }, 80);
+    const cap = setTimeout(() => end(true), 30000);
+    player.play().then(() => lipSyncPlayer(clip.env)).catch(err => { console.warn('audio blocked:', err && err.name); end(false); });
+  });
+}
+function browserSay(text, my, onProgress){
+  if (!('speechSynthesis' in window)) return Promise.resolve();
+  return new Promise(res => {
+    let finished = false; const finish = () => { if (finished) return; finished = true; speakingFake = false; clearInterval(keep); clearTimeout(cap); onProgress(1); res(); };
+    const u = new SpeechSynthesisUtterance(text.replace(/[*#_`]/g,''));
+    const v = pickBrowserVoice(); if (v) u.voice = v;
+    u.rate = .9; u.pitch = voiceKind === 'male' ? .95 : 1.02;
+    let poke = null; u.onstart = () => { if (my === speechToken) poke = lipSyncFake(); };
+    u.onboundary = e => { poke && poke(); if (e.charIndex != null) onProgress(Math.min(1, (e.charIndex + 8) / text.length)); };
+    u.onend = u.onerror = finish;
+    // Chrome silently stops long utterances after ~15s unless nudged; and never wait forever.
+    const keep = setInterval(() => { if (speechSynthesis.speaking && !speechSynthesis.paused) { speechSynthesis.pause(); speechSynthesis.resume(); } }, 10000);
+    const cap = setTimeout(() => { try { speechSynthesis.cancel(); } catch {} finish(); }, 2500 + text.split(/\s+/).length * 450);
+    speechSynthesis.speak(u);
+  });
+}
+
+let speechToken = 0, activeCaption = null;
+function stopSpeaking(){
+  speechToken++; speakingFake = false;
+  if (activeCaption) { activeCaption.finish(); activeCaption = null; }   // interrupted: show the whole reply
+  try { player.pause(); } catch {}
+  try { speechSynthesis.cancel(); } catch {}
+  setMouth(0);
+}
+async function speak(text, gentle, caption){
+  if (recorder || recognizer) { caption && caption.finish(); return; }   // never talk over someone who is speaking
+  stopSpeaking(); const my = speechToken; activeCaption = caption || null; const after = gentle ? 'care' : 'idle';
+  const done = () => { if (caption) caption.finish(); if (my !== speechToken || recorder || recognizer) return;
+    activeCaption = null; speakingFake = false; setMouth(0); setState(after); idleHint(); maybeListenAgain(); };
+  if (!voiceOn) { done(); return; }
+
+  const parts = splitSentences(text), jobs = [];
+  const job = i => (i < parts.length && !jobs[i]) ? (jobs[i] = fetchAudio(parts[i])) : jobs[i];
+  let useBrowser = health.tts === false, started = false, spoken = '';
+  if (!useBrowser) { job(0); job(1); }   // first sentence comes back fast; the next is prepared meanwhile
+  // If the voice is slow, show the words anyway rather than leave you waiting.
+  const slow = setTimeout(() => { if (my === speechToken && !started && caption) caption.finish(); }, 5000);
+  const show = (cur, frac) => { if (!caption || my !== speechToken) return; const w = cur.split(/\s+/);
+    caption.set((spoken + ' ' + w.slice(0, Math.ceil(w.length * frac)).join(' ')).trim()); };
+
+  for (let i = 0; i < parts.length; i++) {
+    const clip = useBrowser ? null : await job(i);
+    if (!useBrowser) job(i + 2);
+    if (my !== speechToken) { if (clip) URL.revokeObjectURL(clip.url); return; }
+    if (!started) { started = true; clearTimeout(slow); setState(gentle ? 'care' : 'speaking'); hint('Speaking… (tap the mic to interrupt)'); }
+    let ok = false;
+    if (clip) { ok = await playClip(clip, f => show(parts[i], f)); URL.revokeObjectURL(clip.url);
+      if (!ok && my === speechToken) hint('Tap anywhere to turn on sound 🔈'); }
+    if (!ok) useBrowser = true;
+    if (my !== speechToken) return;
+    if (!ok) await browserSay(parts[i], my, f => show(parts[i], f));
+    if (my !== speechToken) return;
+    spoken = (spoken + ' ' + parts[i]).trim(); if (caption) caption.set(spoken);
+  }
+  clearTimeout(slow); done();
+}
+// Browser voices vary a lot. Prefer natural-sounding neural voices, matching the chosen gender by known voice names.
+const VOICE_NAMES = {
+  female: ['aria','jenny','ava','emma','michelle','sonia','libby','natasha','neerja','samantha','karen','moira','tessa','serena','victoria','zira','susan','hazel','female','fiona','allison','nicky'],
+  male:   ['andrew','brian','guy','christopher','eric','ryan','william','prabhat','daniel','alex','arthur','oliver','tom','aaron','fred','david','mark','george','male','rishi','evan'],
+};
+function pickBrowserVoice(){
+  const voices = speechSynthesis.getVoices(); if (!voices.length) return null;
+  const lang = (navigator.language || 'en').slice(0,2), names = VOICE_NAMES[voiceKind];
+  const score = v => { const n = v.name.toLowerCase(); let s = 0;
+    if (names.some(x => n.includes(x))) s += 100; else if (VOICE_NAMES[voiceKind === 'male' ? 'female' : 'male'].some(x => n.includes(x))) s -= 100;
+    if (/natural|neural|online|premium|enhanced|siri/.test(n)) s += 30; if (n.includes('google')) s += 15;
+    if (v.lang.toLowerCase().startsWith(lang)) s += 20; if (v.lang === navigator.language) s += 5;
+    if (/compact|espeak|novelty|whisper|bells|bad news|zarvox|trinoids|albert|jester|organ/.test(n)) s -= 200; return s; };
+  return voices.slice().sort((a, b) => score(b) - score(a))[0];
+}
+if ('speechSynthesis' in window) speechSynthesis.onvoiceschanged = () => speechSynthesis.getVoices();
+
+// ---------- listening ----------
+// Tap the mic once and talk. A pause of ~1.3 s after you speak sends it automatically.
+// In hands-free mode Pocket Pal listens again by itself after replying, until you go quiet.
+const BrowserSR = window.SpeechRecognition || window.webkitSpeechRecognition;
+const VAD = {silenceMs: 1300, noSpeechMs: 7000, maxMs: 60000};
+let recorder = null, recognizer = null, micStarting = false, conversing = false, handsFree = store.get('handsFree', true);
+async function toggleTalk(){
+  if (busy || micStarting) return; ctx();
+  if (recorder) { recorder.stop(); return; }        // "I'm done": send now
+  if (recognizer) { recognizer.stop(); return; }
+  stopSpeaking(); conversing = handsFree; listen(true);
+}
+function listen(manual){
+  if (health.stt) return recordForServer(manual);
+  if (BrowserSR) return browserListen(manual);
+  conversing = false; hint('Voice input is not available in this browser. You can type instead.');
+}
+function maybeListenAgain(){
+  if (!conversing || !handsFree) return;
+  setTimeout(() => { if (conversing && !busy && !recorder && !recognizer && !micStarting && state !== 'speaking') listen(false); }, 400);
+}
+function stopListeningQuietly(manual){
+  conversing = false; setState('idle');
+  hint(manual ? "I didn't hear anything. Tap the mic whenever you're ready." : 'Tap the mic whenever you want to talk 💜');
+}
+// Voice activity detection: learns the room's noise level, then watches for speech followed by silence.
+function watchMic(stream, rec, cb){
+  const c = ctx(); if (!c || c.state !== 'running') return false;
+  let an, src; try { an = c.createAnalyser(); an.fftSize = 1024; src = c.createMediaStreamSource(stream); src.connect(an); } catch { return false; }
+  const buf = new Float32Array(an.fftSize), t0 = performance.now(); let floor = null, speechStart = 0, lastLoud = 0, heard = false;
+  const iv = setInterval(() => {
+    if (rec.state !== 'recording') { clearInterval(iv); try { src.disconnect(); } catch {} buddy.style.setProperty('--lvl', 0); return; }
+    an.getFloatTimeDomainData(buf); let sum = 0; for (const x of buf) sum += x*x; const rms = Math.sqrt(sum / buf.length), now = performance.now();
+    buddy.style.setProperty('--lvl', Math.min(1, rms*8).toFixed(2));
+    if (now - t0 < 250) { floor = floor === null ? rms : Math.min(floor, rms); return; }
+    const thr = Math.min(.06, Math.max(.012, floor * 3));
+    if (rms > thr) { if (!speechStart) speechStart = now; if (!heard && now - speechStart > 180) { heard = true; cb.onSpeech(); } lastLoud = now; }
+    else { if (!heard) speechStart = 0; floor = floor * .97 + rms * .03; }
+    if (heard && now - lastLoud > VAD.silenceMs) cb.onDone();
+    else if (!heard && now - t0 > VAD.noSpeechMs) cb.onNothing();
+    else if (now - t0 > VAD.maxMs) cb.onDone();
+  }, 50);
+  return true;
+}
+async function recordForServer(manual){
+  micStarting = true; let stream;
+  try { stream = await navigator.mediaDevices.getUserMedia({audio:{echoCancellation:true, noiseSuppression:true, autoGainControl:true}}); }
+  catch (e) { micStarting = false; conversing = false; setState('idle'); hint('Microphone blocked. Allow it in the browser, or type below.'); return; }
+  micStarting = false;
+  const chunks = [], began = performance.now(); let nothing = false;
+  const rec = new MediaRecorder(stream); recorder = rec; rec.ondataavailable = e => chunks.push(e.data);
+  rec.onstop = async () => {
+    stream.getTracks().forEach(t => t.stop()); recorder = null; $('talk').classList.remove('on');
+    if (nothing) { stopListeningQuietly(manual); return; }
+    const blob = new Blob(chunks, {type: chunks[0]?.type || 'audio/webm'});
+    if (performance.now() - began < 700 || blob.size < 200) { setState('idle'); hint('That was very short. Tap the mic and talk, then just pause.'); return; }
+    setState('thinking'); hint('Listening back…'); const fd = new FormData(); fd.append('audio', blob, 'audio.' + (blob.type.includes('mp4') ? 'mp4' : 'webm'));
+    try { const r = await fetch('/api/transcribe', {method:'POST', body: fd}); const t = r.ok ? (await r.json()).text : '';
+      if (t) send(t);
+      else { conversing = false; setState('idle'); hint(r.ok ? "I couldn't hear any words. Try speaking a little closer?" : "Sorry, I couldn't process that (" + r.status + "). Try again or type below."); } }
+    catch { conversing = false; setState('idle'); hint("I couldn't reach the server. Check your connection and try again."); }
+  };
+  rec.start(); $('talk').classList.add('on'); setState('listening'); resetFace();
+  const auto = watchMic(stream, rec, {
+    onSpeech: () => hint("I'm listening… just pause when you're done"),
+    onDone: () => rec.state === 'recording' && rec.stop(),
+    onNothing: () => { if (rec.state === 'recording') { nothing = true; rec.stop(); } },
+  });
+  if (!auto) setTimeout(() => rec.state === 'recording' && rec.stop(), VAD.maxMs);
+  hint(auto ? "I'm listening…" : "I'm listening… tap the mic when you're done");
+}
+function browserListen(manual){
+  // The browser's own recognizer already stops by itself when you pause.
+  recognizer = new BrowserSR(); recognizer.lang = navigator.language; recognizer.interimResults = false; recognizer.continuous = false; let said = '';
+  recognizer.onresult = e => { said = Array.from(e.results).map(r => r[0].transcript).join(' '); };
+  recognizer.onerror = e => { if (e.error === 'not-allowed') { conversing = false; hint('Microphone blocked. Allow it in the browser, or type below.'); } };
+  recognizer.onend = () => { recognizer = null; $('talk').classList.remove('on'); if (said) send(said); else stopListeningQuietly(manual); };
+  try { recognizer.start(); } catch (e) { recognizer = null; conversing = false; hint('Mic unavailable, you can type below.'); return; }
+  setTimeout(() => recognizer && recognizer.stop(), VAD.maxMs);
+  $('talk').classList.add('on'); setState('listening'); resetFace(); hint("I'm listening…");
+}
+
+// ---------- screens ----------
+function openHelp(){ const box = $('lines'); box.innerHTML = '';
+  linesFor(region).forEach(l => { const d = document.createElement('div'); d.className = 'line'; d.innerHTML = '<b></b><br><span></span>';
+    d.querySelector('b').textContent = l.name; d.querySelector('span').textContent = l.contact; box.appendChild(d); });
+  $('helpSheet').hidden = false; }
+function voiceLabel(){ $('toggleVoice').textContent = 'Spoken replies: ' + (voiceOn ? 'on' : 'off');
+  $('toggleHands').textContent = 'Hands-free conversation: ' + (handsFree ? 'on (keeps listening after each reply)' : 'off'); }
+function markVoice(){ document.querySelectorAll('#voiceSeg button').forEach(b => b.classList.toggle('sel', b.dataset.v === voiceKind)); }
+$('agree').onchange = e => $('start').disabled = !e.target.checked;
+$('start').onclick = () => { store.set('agreed', true); $('welcome').hidden = true; ctx();
+  if (!store.get('introSeen', false)) { playIntro(); return; }
+  wave();
+  // Only greet out loud if nothing has happened in the meantime (no message sent, nothing else spoken).
+  if (!messages.length && voiceOn) { const t0 = speechToken; setTimeout(() => { if (!busy && !messages.length && speechToken === t0) speak(greeting()); }, 400); } };
+$('help').onclick = openHelp; $('closeHelp').onclick = () => $('helpSheet').hidden = true;
+$('menuBtn').onclick = () => { voiceLabel(); markVoice(); $('menu').hidden = false; }; $('closeMenu').onclick = () => $('menu').hidden = true;
+$('toggleHands').onclick = () => { handsFree = !handsFree; store.set('handsFree', handsFree); if (!handsFree) conversing = false; voiceLabel(); };
+$('toggleVoice').onclick = () => { voiceOn = !voiceOn; store.set('voice', voiceOn); voiceLabel(); if (!voiceOn) stopSpeaking(); };
+document.querySelectorAll('#voiceSeg button').forEach(b => b.onclick = async () => { voiceKind = b.dataset.v; store.set('voiceKind', voiceKind); markVoice();
+  ctx(); const was = voiceOn; voiceOn = true;
+  const p = speak(voiceKind === 'male' ? "Hey. I'm here with you." : "Hi. I'm here with you."); voiceOn = was; await p; });
+// ---------- first-time intro: the character walks in, introduces itself, then goes to its spot ----------
+let introSkipped = false, introRunning = false, skipIntro = () => {};
+function introLines(){
+  return [
+    `Hi there! I'm ${charName()}.`,
+    "I'm here for the moments when you feel low, lonely, or just need someone to talk to.",
+    "Just tap the mic and talk to me. I'll listen, no judging.",
+    "I'm an AI friend, not a therapist. If things ever feel too heavy, tap “Need help now?” up top to reach real people.",
+    "You can pick a different friend or theme anytime in the menu. Ready? Let's talk!",
+  ];
+}
+// Magic entrance: a wand swoops in trailing sparkles, gathers an orb of light, and "poof", the character pops out.
+let introAnims = [], introTimers = [];
+const SPARK_COLORS = ['#ffc533', '#ff8fc6', '#ffc533', '#a98bff', '#ffc533', '#4fcfff', '#ffffff'];
+const GLYPHS = ['✦', '✧', '★', '✦', '•'];
+function fxEl(cls, x, y, vars, text){ const e = document.createElement('i'); e.className = cls; if (text) e.textContent = text; if (x != null) e.style.transform = `translate(${x}px,${y}px)`;
+  for (const [k, v] of Object.entries(vars || {})) e.style.setProperty('--' + k, v); $('introFx').appendChild(e); return e; }
+function later(fn, ms){ const t = setTimeout(fn, ms); introTimers.push(t); return t; }
+function clearMagic(){ introAnims.forEach(a => { try { a.cancel(); } catch {} }); introTimers.forEach(clearTimeout); introAnims = []; introTimers = [];
+  $('introFx').innerHTML = ''; $('walker').style.opacity = ''; }
+function magicIn(){
+  const walker = $('walker'), r = buddy.getBoundingClientRect(), cx = r.left + r.width / 2, cy = r.top + r.height / 2, W = Math.min(innerWidth / 2 - 30, 230);
+  clearMagic(); walker.style.opacity = '0'; setState('happy');
+  // 1. the wand swoops in and swirls above the centre (positions are the bottom of the handle)
+  const wand = fxEl('wand'); wand.innerHTML = '<span class="glow"></span><span class="tip"></span>';
+  const at = (x, y, deg, extra = {}) => ({transform: `translate(${x}px,${y}px) rotate(${deg}deg)`, ...extra});
+  introAnims.push(wand.animate([
+    at(cx + W + 160, cy - 360, 35, {opacity: 0}),
+    at(cx + W * .55, cy - 240, -5, {opacity: 1, offset: .25}),
+    at(cx - 80, cy - 150, 25, {offset: .5}),
+    at(cx + 95, cy - 45, -20, {offset: .7}),
+    at(cx + 95, cy - 45, -36, {offset: .8}),
+    at(cx + 95, cy - 45, -60, {offset: .86}),   // tap!
+    at(cx + 95, cy - 45, -36, {offset: .93}),
+    at(cx + 95, cy - 45, -36)], {duration: 1700, easing: 'ease-in-out', fill: 'forwards'}));
+  // sparkle trail from the star tip
+  const tip = wand.querySelector('.tip'), trail = setInterval(() => {
+    const t = tip.getBoundingClientRect(); if (!t.width) return;
+    fxEl('trail', null, null, {x: t.left + t.width / 2 + (Math.random() - .5) * 10 + 'px', y: t.top + t.height / 2 + (Math.random() - .5) * 10 + 'px',
+      s: 12 + Math.random() * 14 + 'px', c: SPARK_COLORS[Math.floor(Math.random() * SPARK_COLORS.length)]}, GLYPHS[Math.floor(Math.random() * 4)]);
+    const old = $('introFx').querySelectorAll('.trail'); if (old.length > 60) old[0].remove();
+  }, 28);
+  introTimers.push(trail); later(() => clearInterval(trail), 1500);
+  // 2. light gathers where the wand points
+  later(() => { const orb = fxEl('orb', cx, cy - 10);
+    introAnims.push(orb.animate([{transform: `translate(${cx}px,${cy - 10}px) scale(0)`, opacity: 0}, {transform: `translate(${cx}px,${cy - 10}px) scale(1)`, opacity: 1, offset: .6},
+      {transform: `translate(${cx}px,${cy - 10}px) scale(.8)`, offset: .8}, {transform: `translate(${cx}px,${cy - 10}px) scale(2.6)`, opacity: 0}], {duration: 700, easing: 'ease-in-out', fill: 'forwards'})); }, 950);
+  // 3. poof: ring, stars and the character pops out
+  later(() => {
+    const ring = fxEl('ring', cx, cy);
+    introAnims.push(ring.animate([{transform: `translate(${cx}px,${cy}px) scale(.2)`, opacity: 1}, {transform: `translate(${cx}px,${cy}px) scale(4.2)`, opacity: 0}], {duration: 800, easing: 'cubic-bezier(.1,.6,.3,1)', fill: 'forwards'}));
+    for (let i = 0; i < 30; i++) {
+      const ang = (i / 30) * Math.PI * 2 + Math.random() * .3, dist = 100 + Math.random() * 120, sz = 14 + Math.random() * 18;
+      const sp = fxEl('spark', cx, cy, {s: sz + 'px', c: SPARK_COLORS[i % SPARK_COLORS.length]}, GLYPHS[i % GLYPHS.length]);
+      introAnims.push(sp.animate([{transform: `translate(${cx}px,${cy}px) scale(.3) rotate(0)`, opacity: 1},
+        {transform: `translate(${cx + Math.cos(ang) * dist}px,${cy + Math.sin(ang) * dist}px) scale(1) rotate(180deg)`, opacity: 1, offset: .55},
+        {transform: `translate(${cx + Math.cos(ang) * dist * 1.15}px,${cy + Math.sin(ang) * dist * 1.15 + 25}px) scale(.2) rotate(260deg)`, opacity: 0}],
+        {duration: 1100 + Math.random() * 400, easing: 'cubic-bezier(.15,.7,.35,1)', fill: 'forwards'}));
+    }
+    walker.style.opacity = '1';
+    introAnims.push(walker.animate([{transform: 'scale(0) rotate(-14deg)'}, {transform: 'scale(1.16) rotate(5deg)', offset: .45},
+      {transform: 'scale(.93) rotate(-2deg)', offset: .68}, {transform: 'scale(1.03) rotate(0)', offset: .85}, {transform: 'scale(1)'}],
+      {duration: 800, easing: 'cubic-bezier(.2,.8,.3,1)'}));
+    introAnims.push(wand.animate([{opacity: 1}, {opacity: 0, transform: `translate(${cx + 140}px,${cy - 120}px) rotate(-10deg) scale(.6)`}], {duration: 450, easing: 'ease-in', fill: 'forwards'}));
+    // a few sparkles linger and twinkle around the character
+    for (let i = 0; i < 10; i++) later(() => {
+      const ang = Math.random() * Math.PI * 2, d = r.width * (.45 + Math.random() * .25), x = cx + Math.cos(ang) * d, y = cy + Math.sin(ang) * d;
+      const tw = fxEl('spark', x, y, {s: 14 + Math.random() * 12 + 'px', c: SPARK_COLORS[i % SPARK_COLORS.length]}, '✦');
+      introAnims.push(tw.animate([{transform: `translate(${x}px,${y}px) scale(0)`, opacity: 0}, {transform: `translate(${x}px,${y}px) scale(1) rotate(90deg)`, opacity: 1, offset: .5},
+        {transform: `translate(${x}px,${y}px) scale(0) rotate(180deg)`, opacity: 0}], {duration: 900, fill: 'forwards'}));
+    }, 300 + i * 160);
+  }, 1550);
+  return new Promise(res => later(res, 2500));
+}
+async function playIntro(){
+  if (introRunning) return; introRunning = introSkipped = false; introRunning = true;
+  const intro = $('intro'), walker = $('walker'), bubbleEl = $('introBubble');
+  const skipped = new Promise(res => { skipIntro = () => { introSkipped = true; stopSpeaking(); clearMagic(); res(); }; });
+  const wait = ms => Promise.race([new Promise(r => setTimeout(r, ms)), skipped]);
+  // lift the real character (so blinking, lip sync and expressions all work) into the intro stage
+  const spot = document.createElement('div'); spot.className = 'buddy-spot'; buddy.replaceWith(spot); walker.appendChild(buddy);
+  bubbleEl.classList.remove('show'); bubbleEl.textContent = ''; $('introSkip').hidden = false;
+  document.body.classList.add('intro-on'); intro.hidden = false; setState('idle'); resetFace();
+  await Promise.race([magicIn(), skipped]);
+  if (!introSkipped) { setState('idle'); await wait(250); wave(); await wait(900); }
+  for (const line of introLines()) {
+    if (introSkipped) break;
+    bubbleEl.classList.add('show', 'typing'); bubbleEl.innerHTML = '<span class="dots"><i></i><i></i><i></i></span>';
+    if (voiceOn) { await speak(line, false, new Caption(bubbleEl, line)); await wait(250); }
+    else { bubbleEl.classList.remove('typing'); bubbleEl.textContent = line; await wait(1200 + line.split(' ').length * 260); }
+  }
+  if (!introSkipped) await wait(500);
+  // fly to its place above the chat while the chat fades in
+  bubbleEl.classList.remove('show'); stopSpeaking(); $('introSkip').hidden = true;
+  const from = buddy.getBoundingClientRect(), to = spot.getBoundingClientRect();
+  document.body.classList.remove('intro-on');
+  const dx = to.left - from.left + (to.width - from.width) / 2, dy = to.top - from.top + (to.height - from.height) / 2, sc = to.width / from.width;
+  const body = $('bodyGroup');
+  setState('happy');
+  await body.animate([{transform: 'scale(1,1)'}, {transform: 'scale(1.12,.86)'}], {duration: 200, easing: 'ease-out', fill: 'forwards'}).finished.catch(() => {});
+  body.animate([{transform: 'scale(.92,1.1)'}, {transform: 'scale(1,1)'}], {duration: 450, easing: 'ease-out'});
+  const fly = buddy.animate([
+    {transform: 'translate(0,0) scale(1)', easing: 'cubic-bezier(.3,.6,.5,1)'},
+    {transform: `translate(${dx * .5}px, ${Math.min(dy * .5, 0) - 70}px) scale(${(1 + sc) / 2})`, offset: .5, easing: 'cubic-bezier(.5,0,.7,.6)'},
+    {transform: `translate(${dx}px, ${dy}px) scale(${sc})`}], {duration: 850, fill: 'forwards'});
+  await new Promise(r => { fly.onfinish = r; setTimeout(r, 1100); });
+  intro.hidden = true; spot.replaceWith(buddy); fly.cancel(); clearMagic();
+  body.animate([{transform: 'scale(1.16,.84)'}, {transform: 'scale(.96,1.05)', offset: .5}, {transform: 'scale(1,1)'}], {duration: 420, easing: 'ease-out'});
+  store.set('introSeen', true); introRunning = false; setState('idle'); idleHint();
+}
+$('introSkip').onclick = () => skipIntro();
+$('replayIntro').onclick = () => { if (busy || recorder || recognizer) return; $('menu').hidden = true; conversing = false; playIntro(); };
+$('newChat').onclick = async () => { if (messages.length) await summarize(); messages = []; store.set('messages', []); render(); $('menu').hidden = true; setState('idle'); wave(); };
+let forgetArmed = false;
+$('forget').onclick = () => { if (!forgetArmed) { forgetArmed = true; $('forget').textContent = 'Tap again to erase all chats and memories'; return; }
+  store.clear(); messages = []; memory = ''; forgetArmed = false; $('forget').textContent = 'Forget everything about me'; $('menu').hidden = true; render(); $('welcome').hidden = false; };
+document.querySelectorAll('.overlay').forEach(o => o.addEventListener('click', e => { if (e.target === o && o.id !== 'welcome') o.hidden = true; }));
+$('talk').onclick = toggleTalk; $('send').onclick = () => { ctx(); stopSpeaking(); conversing = false; send($('text').value); $('text').value = ''; };
+$('text').onkeydown = e => { if (e.key === 'Enter') $('send').click(); };
+
+fetch('/api/health').then(r => r.json()).then(h => { health = h; idleHint(); }).catch(() => {});
+if (!store.get('agreed', false)) $('welcome').hidden = false; else setTimeout(wave, 500);
+if ('serviceWorker' in navigator) navigator.serviceWorker.register('/static/sw.js', {scope:'/static/'}).catch(() => {});
+render(); idleHint();
+</script></body></html>
