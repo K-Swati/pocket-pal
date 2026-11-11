@@ -76,3 +76,8 @@ pocketpal/
 tests/            unit tests (offline)
 tests/e2e/        Playwright browser tests (real Chromium, fake mic and services)
 ```
+
+## License
+
+Proprietary, all rights reserved. See [LICENSE](LICENSE). The Pocket Pal name and the characters
+Mochi, Miso, Bao, Clover and Nimbus (artwork, designs and colours) may not be used without written permission.
