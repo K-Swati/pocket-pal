@@ -124,6 +124,14 @@ body.chatting .buddy{width:118px;height:118px}
 .heart{position:absolute;font-size:20px;pointer-events:none;animation:heart 1.2s ease-out forwards}
 @keyframes heart{from{opacity:1;transform:translate(0,0) scale(.6)}to{opacity:0;transform:translate(var(--dx),-90px) scale(1.2)}}
 
+/* ---------- breathing tool ---------- */
+.toolcard{display:flex;align-items:center;gap:12px;flex-wrap:wrap}.toolcard .sub{font-size:13px;color:var(--muted)}
+.toolbtn{border:0;border-radius:999px;padding:8px 16px;background:var(--accent);color:var(--accent-ink);font:inherit;font-weight:600;cursor:pointer}
+.breathe{position:fixed;inset:0;z-index:8;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:22px;background:var(--solid);background-image:var(--bg)}
+.breathCircle{width:min(260px,64vw);height:min(260px,64vw);border-radius:50%;transform:scale(.45);
+ background:radial-gradient(circle at 35% 30%,#fff,color-mix(in srgb,var(--accent) 55%,#fff) 45%,var(--accent));box-shadow:0 0 60px color-mix(in srgb,var(--accent) 45%,transparent)}
+.breathLabel{font-size:22px;font-weight:600}.breathCount{color:var(--muted)}
+
 /* ---------- first-time intro ---------- */
 body.intro-on .app{opacity:0;pointer-events:none;transition:none}
 .app{transition:opacity .6s ease}
@@ -215,6 +223,13 @@ body.chatting .buddy-spot{width:118px;height:118px}
  </div>
 </div>
 
+<div class="breathe" id="breathe" hidden role="dialog" aria-label="Guided breathing">
+ <div class="breathCircle" id="breathCircle"></div>
+ <div class="breathLabel" id="breathLabel" aria-live="polite">Get comfortable…</div>
+ <div class="breathCount" id="breathCount"></div>
+ <button class="introSkip" id="breathStop">Stop</button>
+</div>
+
 <div class="intro" id="intro" hidden aria-live="polite">
  <div class="introFx" id="introFx"></div>
  <div class="walker" id="walker"></div>
@@ -261,6 +276,11 @@ const store = {
   clear(){ try { Object.keys(localStorage).filter(k => k.startsWith('friend.') && k !== 'friend.theme' && k !== 'friend.character').forEach(k => localStorage.removeItem(k)); } catch {} },
 };
 const region = (navigator.language.split('-')[1] || '').toUpperCase() || null;
+// Anonymous random id for this browser (the server keeps only a keyed hash, used for usage counts and blocking abuse).
+const deviceId = store.get('device', null) || (() => { const id = crypto.randomUUID ? crypto.randomUUID() : String(Math.random()).slice(2) + Date.now(); store.set('device', id); return id; })();
+const _fetch = window.fetch.bind(window);
+window.fetch = (url, opts = {}) => typeof url === 'string' && url.startsWith('/api/')
+  ? _fetch(url, {...opts, headers: {...(opts.headers || {}), 'X-Device-Id': deviceId}}) : _fetch(url, opts);
 let messages = store.get('messages', []), memory = store.get('memory', ''), voiceOn = store.get('voice', true), voiceKind = store.get('voiceKind', 'female');
 let health = {stt:false, tts:false}, busy = false, sinceSummary = 0;
 
@@ -407,7 +427,9 @@ async function send(text){
   try {
     const r = await fetch('/api/chat', {method:'POST', headers:{'content-type':'application/json'},
       body: JSON.stringify({messages: messages.slice(-40), memory, region, name: charName()})});
-    const data = r.ok ? await r.json() : {reply:"Sorry, I couldn't hear you properly just then. Could you try again?", crisis:false, helplines:[]};
+    const data = r.ok ? await r.json()
+      : r.status === 403 ? {reply: (await r.json().catch(() => ({}))).detail || "Pocket Pal isn't available right now.", crisis:false, helplines:[]}
+      : {reply:"Sorry, I couldn't hear you properly just then. Could you try again?", crisis:false, helplines:[]};
     crisis = data.crisis;
     messages.push({role:'assistant', content:data.reply});
     store.set('messages', messages.slice(-60));
@@ -419,6 +441,7 @@ async function send(text){
     } else {
       speak(data.reply, false, new Caption(typingBubble(), data.reply));   // text appears as it is spoken
     }
+    if (data.action && data.action.type === 'breathing') breathingCard(data.action);
     return;
   } catch { bubble('bot', "I can't reach the server right now. Check your connection and try again?"); }
   busy = false; $('talk').disabled = false; setState(crisis ? 'care' : 'idle'); idleHint();
@@ -427,6 +450,33 @@ async function summarize(){
   try { const r = await fetch('/api/summarize', {method:'POST', headers:{'content-type':'application/json'}, body: JSON.stringify({messages: messages.slice(-40), memory})});
     if (r.ok) { memory = (await r.json()).memory; store.set('memory', memory); } } catch {}
 }
+// ---------- tool: guided breathing ----------
+function breathingCard(action){
+  const card = document.createElement('div'); card.className = 'msg bot toolcard';
+  card.innerHTML = '<div>🌬️ <b>Breathe with me</b><br><span class="sub">About a minute. In, hold, and slowly out.</span></div>';
+  const b = document.createElement('button'); b.className = 'toolbtn'; b.textContent = 'Start'; b.onclick = () => startBreathing(action);
+  card.appendChild(b); $('log').appendChild(card); $('log').scrollTop = 1e9;
+}
+let breathingStop = null;
+function startBreathing(action){
+  stopSpeaking(); conversing = false;
+  const [inS, holdS, outS] = action.pattern || [4, 4, 6], rounds = action.rounds || 4, ov = $('breathe'), circle = $('breathCircle'), label = $('breathLabel'), count = $('breathCount');
+  ov.hidden = false; let stopped = false, timers = [];
+  const at = (ms, fn) => timers.push(setTimeout(() => !stopped && fn(), ms));
+  const phase = (text, scale, secs) => { label.textContent = text; circle.style.transition = `transform ${secs}s ease-in-out`; circle.style.transform = `scale(${scale})`; };
+  let t = 300;
+  for (let r = 0; r < rounds; r++) {
+    at(t, () => { count.textContent = `${r + 1} of ${rounds}`; phase('Breathe in…', 1, inS); }); t += inS * 1000;
+    at(t, () => phase('Hold…', 1, holdS)); t += holdS * 1000;
+    at(t, () => phase('And slowly out…', .45, outS)); t += outS * 1000;
+  }
+  at(t, () => { label.textContent = 'Nicely done 💜'; count.textContent = ''; });
+  at(t + 1800, () => end(true));
+  const end = finished => { stopped = true; timers.forEach(clearTimeout); ov.hidden = true; circle.style.transition = 'none'; circle.style.transform = 'scale(.45)';
+    if (finished) { bubble('bot', 'How do you feel now? Even a little lighter counts.'); cheer(); } };
+  breathingStop = () => end(false);
+}
+
 // ---------- speaking, with captions in sync ----------
 function typingBubble(){ const d = document.createElement('div'); d.className = 'msg bot typing'; d.setAttribute('aria-label', 'Pocket Pal is typing');
   d.innerHTML = '<span class="dots"><i></i><i></i><i></i></span>'; $('log').appendChild(d); $('log').scrollTop = 1e9; return d; }
@@ -746,6 +796,7 @@ async function playIntro(){
   store.set('introSeen', true); introRunning = false; setState('idle'); idleHint();
 }
 $('introSkip').onclick = () => skipIntro();
+$('breathStop').onclick = () => breathingStop && breathingStop();
 $('replayIntro').onclick = () => { if (busy || recorder || recognizer) return; $('menu').hidden = true; conversing = false; playIntro(); };
 $('newChat').onclick = async () => { if (messages.length) await summarize(); messages = []; store.set('messages', []); render(); $('menu').hidden = true; setState('idle'); wave(); };
 let forgetArmed = false;

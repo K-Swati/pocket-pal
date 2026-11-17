@@ -14,6 +14,8 @@ import uvicorn
 from playwright.sync_api import expect
 
 from pocketpal.api import create_app
+from pocketpal.db import DB
+from pocketpal.guardrails import rule_check
 
 expect.set_options(timeout=10_000)
 
@@ -34,9 +36,13 @@ class FakeLLM:
     name = "fake"
 
     def __init__(self):
-        self.calls = []
+        self.calls, self.classified = [], []
 
     def chat(self, messages, max_tokens=300):
+        if "You label one message" in messages[0]["content"]:   # the guardrail classifier
+            self.classified.append(messages[-1]["content"])
+            v = rule_check(messages[-1]["content"].split("Message to label:\n")[-1])   # a classifier that agrees with the rules
+            return '{"category": "%s", "anxious": %s}' % (v.category, "true" if v.anxious else "false")
         self.calls.append(messages)
         return "I'm right here with you, and I'm not going anywhere. What's been on your mind tonight?"
 
@@ -64,7 +70,8 @@ class FakeTTS:
 class Server:
     def __init__(self, tts=True):
         self.llm, self.stt, self.tts = FakeLLM(), FakeSTT(), (FakeTTS() if tts else None)
-        app = create_app(providers=[self.llm], stt=self.stt, tts=self.tts)
+        self.db = DB(":memory:")
+        app = create_app(providers=[self.llm], stt=self.stt, tts=self.tts, db=self.db, secret=b"e2e-secret")
         with socket.socket() as s:
             s.bind(("127.0.0.1", 0)); self.port = s.getsockname()[1]
         self.url = f"http://127.0.0.1:{self.port}"

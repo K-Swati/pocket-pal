@@ -1,0 +1,300 @@
+<!doctype html>
+<html lang="en"><head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="robots" content="noindex">
+<title>Pocket Pal · Admin</title>
+<link rel="icon" href="/static/icon.svg">
+<style>
+:root{--bg:#f6f5fa;--card:#fff;--ink:#23202e;--muted:#6f6a7d;--line:#e6e2ef;--accent:#7a5cf0;--accent-ink:#fff;--soft:#f0ecff;
+ --ok:#1f8a5b;--warn:#b0570c;--bad:#c23452;--warn-bg:#fff4e5;--bad-bg:#ffe9ee;--ok-bg:#e6f6ee}
+@media (prefers-color-scheme:dark){:root{--bg:#15131c;--card:#1f1c29;--ink:#ece9f5;--muted:#a19bb3;--line:#322d40;--soft:#2a2440;
+ --warn-bg:#3a2a12;--bad-bg:#3a1822;--ok-bg:#15302a}}
+*{box-sizing:border-box}[hidden]{display:none!important}
+body{margin:0;font:14px/1.5 system-ui,-apple-system,"Segoe UI",sans-serif;background:var(--bg);color:var(--ink)}
+button,input,select,textarea{font:inherit;color:inherit}
+.wrap{max-width:1100px;margin:0 auto;padding:20px 16px 60px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:18px}
+h1{font-size:18px;margin:0}h2{font-size:15px;margin:0 0 12px}
+.muted{color:var(--muted)}.small{font-size:12px}
+.btn{border:1px solid var(--line);background:var(--card);border-radius:9px;padding:7px 12px;cursor:pointer}
+.btn.primary{background:var(--accent);border-color:var(--accent);color:var(--accent-ink)}
+.btn.danger{color:var(--bad);border-color:color-mix(in srgb,var(--bad) 40%,var(--line))}
+.btn:disabled{opacity:.45;cursor:not-allowed}
+input,select,textarea{border:1px solid var(--line);background:var(--card);border-radius:9px;padding:7px 10px;width:100%}
+label{display:block;font-weight:600;margin:12px 0 4px}
+.hint{font-weight:400;color:var(--muted);font-size:12px;margin-top:3px}
+.row{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+.spacer{flex:1}
+/* login */
+#login{max-width:380px;margin:12vh auto 0}
+.err{color:var(--bad);min-height:1.4em;margin-top:8px}
+/* top bar + tabs */
+.top{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:14px}
+.badge{display:inline-block;border-radius:999px;padding:2px 9px;font-size:12px;font-weight:600;background:var(--soft);color:var(--accent)}
+.badge.super_admin{background:#ffe7f1;color:#b0266a}.badge.viewer{background:var(--ok-bg);color:var(--ok)}
+.tabs{display:flex;gap:4px;border-bottom:1px solid var(--line);margin-bottom:16px;overflow-x:auto}
+.tabs button{border:0;background:none;padding:9px 12px;cursor:pointer;color:var(--muted);border-bottom:2px solid transparent;white-space:nowrap}
+.tabs button.on{color:var(--ink);border-bottom-color:var(--accent);font-weight:600}
+.privacy{background:var(--soft);border-radius:10px;padding:9px 12px;margin-bottom:14px;font-size:13px}
+/* stats */
+.stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:12px;margin-bottom:14px}
+.stat .n{font-size:26px;font-weight:700;font-variant-numeric:tabular-nums}
+.grid2{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:12px}
+.bar{display:grid;grid-template-columns:120px 1fr 46px;gap:8px;align-items:center;margin:6px 0}
+.bar .track{height:10px;background:var(--soft);border-radius:999px;overflow:hidden}
+.bar .fill{height:100%;background:var(--accent);border-radius:999px}
+.bar .fill.crisis{background:var(--bad)}.bar .fill.injection,.bar .fill.refuse{background:var(--warn)}
+.bar .num{text-align:right;font-variant-numeric:tabular-nums}
+.days{display:flex;align-items:flex-end;gap:6px;height:110px;padding-top:6px}
+.days .d{flex:1;display:flex;flex-direction:column;align-items:center;gap:4px;height:100%;justify-content:flex-end}
+.days .col{width:100%;max-width:34px;background:var(--accent);border-radius:6px 6px 2px 2px;min-height:2px}
+/* tables */
+.tablewrap{overflow-x:auto}
+table{width:100%;border-collapse:collapse;font-size:13px}
+th,td{text-align:left;padding:8px;border-bottom:1px solid var(--line);vertical-align:middle}
+th{color:var(--muted);font-weight:600;font-size:12px}
+td.mono,.mono{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:12px}
+.chip{display:inline-block;border-radius:6px;padding:1px 6px;margin:1px;font-size:11px;background:var(--soft)}
+.chip.crisis{background:var(--bad-bg);color:var(--bad)}.chip.warn{background:var(--warn-bg);color:var(--warn)}
+.toast{position:fixed;bottom:18px;left:50%;transform:translateX(-50%);background:var(--ink);color:var(--bg);border-radius:10px;padding:9px 14px;font-size:13px}
+.switch{display:flex;gap:8px;align-items:center;font-weight:600;margin:12px 0 4px}
+.switch input{width:auto}
+</style></head><body>
+<div class="wrap">
+
+ <!-- sign in -->
+ <div id="login" class="card" hidden>
+  <h1>Pocket Pal admin</h1>
+  <p class="muted">Staff sign-in.</p>
+  <form id="loginForm">
+   <label for="email">Email</label><input id="email" type="email" autocomplete="username" required>
+   <label for="password">Password</label><input id="password" type="password" autocomplete="current-password" required>
+   <div class="err" id="loginErr"></div>
+   <button class="btn primary" style="width:100%">Sign in</button>
+  </form>
+ </div>
+
+ <!-- console -->
+ <div id="app" hidden>
+  <div class="top">
+   <h1>Pocket Pal admin</h1>
+   <span class="spacer"></span>
+   <span id="who" class="muted"></span><span id="role" class="badge"></span>
+   <button class="btn" id="pwBtn">Change password</button>
+   <button class="btn" id="logout">Sign out</button>
+  </div>
+  <div class="privacy">🔒 Conversations are never stored. Everything here is metadata: categories, routes, model and timing. Devices are anonymous hashed ids.</div>
+  <nav class="tabs" id="tabs"></nav>
+
+  <section data-tab="overview">
+   <div class="row" style="margin-bottom:12px"><span class="muted">Period</span>
+    <select id="days" style="width:auto"><option value="1">Last 24 hours</option><option value="7" selected>Last 7 days</option><option value="30">Last 30 days</option></select></div>
+   <div class="stats" id="stats"></div>
+   <div class="grid2">
+    <div class="card"><h2>Messages per day</h2><div class="days" id="perDay"></div></div>
+    <div class="card"><h2>What people talked about</h2><div id="byCategory"></div></div>
+    <div class="card"><h2>How the companion answered</h2><div id="byRoute"></div></div>
+    <div class="card"><h2>Model / provider</h2><div id="byProvider"></div></div>
+   </div>
+  </section>
+
+  <section data-tab="activity" hidden>
+   <div class="card">
+    <div class="row" style="margin-bottom:10px"><h2 style="margin:0">Recent messages (metadata)</h2><span class="spacer"></span>
+     <select id="catFilter" style="width:auto"><option value="">All categories</option></select>
+     <button class="btn" id="refreshEvents">Refresh</button></div>
+    <div class="tablewrap"><table><thead><tr><th>Time</th><th>Device</th><th>Category</th><th>Route</th><th>Provider</th><th>Latency</th><th>Pipeline</th><th></th></tr></thead>
+     <tbody id="events"></tbody></table></div>
+   </div>
+  </section>
+
+  <section data-tab="guardrails" hidden>
+   <div class="card" style="max-width:640px">
+    <h2>Guardrails</h2>
+    <p class="muted small" id="guardRO" hidden>Read only: your role can view but not change these.</p>
+    <form id="settingsForm">
+     <label for="s_off">Off-topic requests</label>
+     <select id="s_off"><option value="redirect">Redirect gently (allow light small talk, decline tasks)</option><option value="strict">Strict (only talk about how they feel)</option></select>
+     <div class="switch"><input type="checkbox" id="s_cls"><label for="s_cls" style="margin:0">Model-based classifier</label></div>
+     <div class="hint">A second check on every message that catches indirect crisis language and off-topic or medical requests. The rules in code always run too.</div>
+     <div class="switch"><input type="checkbox" id="s_breath"><label for="s_breath" style="margin:0">Offer guided breathing when someone sounds anxious</label></div>
+     <label for="s_max">Longest reply (sentences)</label><input id="s_max" type="number" min="1" max="8" style="width:100px">
+     <label for="s_maint">Maintenance message</label><textarea id="s_maint" rows="2" maxlength="300" placeholder="Leave empty for normal operation"></textarea>
+     <div class="hint">When set, the companion replies with this message instead of talking. Crisis messages still get the crisis response and helplines.</div>
+     <div class="row" style="margin-top:14px"><button class="btn primary" id="saveSettings">Save changes</button><span class="muted small" id="settingsMsg"></span></div>
+    </form>
+   </div>
+  </section>
+
+  <section data-tab="devices" hidden>
+   <div class="card">
+    <h2>Blocked devices</h2>
+    <p class="muted small">Block a device from the Activity tab. Blocked devices see a short "not available" message.</p>
+    <div class="tablewrap"><table><thead><tr><th>Device</th><th>Reason</th><th>Blocked by</th><th>When</th><th></th></tr></thead><tbody id="blocked"></tbody></table></div>
+   </div>
+  </section>
+
+  <section data-tab="staff" hidden>
+   <div class="card" style="margin-bottom:12px">
+    <h2>Staff</h2>
+    <div class="tablewrap"><table><thead><tr><th>Name</th><th>Email</th><th>Role</th><th>Status</th><th>Last sign-in</th><th></th></tr></thead><tbody id="staff"></tbody></table></div>
+   </div>
+   <div class="card" id="addStaffCard" style="max-width:640px">
+    <h2>Add staff</h2>
+    <form id="addStaff">
+     <div class="grid2" style="gap:0 12px">
+      <div><label for="n_name">Name</label><input id="n_name" required maxlength="80"></div>
+      <div><label for="n_email">Email</label><input id="n_email" type="email" required></div>
+      <div><label for="n_role">Role</label><select id="n_role"><option value="viewer">Viewer: read-only dashboards</option><option value="admin">Admin: manage guardrails and devices</option><option value="super_admin">Super admin: everything, incl. staff</option></select></div>
+      <div><label for="n_pw">Temporary password</label><input id="n_pw" type="text" required minlength="10" autocomplete="off"><div class="hint">10+ characters, upper and lower case, a number.</div></div>
+     </div>
+     <div class="row" style="margin-top:12px"><button class="btn primary">Add</button><span class="err small" id="addErr"></span></div>
+    </form>
+   </div>
+  </section>
+
+  <section data-tab="audit" hidden>
+   <div class="card">
+    <h2>Audit log</h2>
+    <div class="tablewrap"><table><thead><tr><th>Time</th><th>Who</th><th>Action</th><th>Target</th><th>Details</th></tr></thead><tbody id="audit"></tbody></table></div>
+   </div>
+  </section>
+ </div>
+</div>
+
+<script>
+const $ = id => document.getElementById(id);
+let me = null;
+const can = p => !!me && me.permissions.includes(p);
+const ROLE_LABEL = {super_admin: 'Super admin', admin: 'Admin', viewer: 'Viewer'};
+
+async function api(path, opts = {}){
+  const r = await fetch('/api/admin' + path, {credentials: 'same-origin', ...opts,
+    headers: {'X-Requested-With': 'pocketpal', ...(opts.body ? {'content-type': 'application/json'} : {}), ...(opts.headers || {})}});
+  if (r.status === 401 && path !== '/login') { showLogin(); throw new Error('signed out'); }
+  const data = r.headers.get('content-type')?.includes('json') ? await r.json() : {};
+  if (!r.ok) throw new Error(data.detail ? (typeof data.detail === 'string' ? data.detail : 'Invalid input') : r.statusText);
+  return data;
+}
+const post = (p, b, m = 'POST') => api(p, {method: m, body: JSON.stringify(b)});
+function toast(t){ const d = document.createElement('div'); d.className = 'toast'; d.textContent = t; document.body.appendChild(d); setTimeout(() => d.remove(), 2600); }
+const when = ts => ts ? new Date(ts * 1000).toLocaleString([], {dateStyle: 'medium', timeStyle: 'short'}) : 'never';
+function el(tag, attrs = {}, ...kids){ const e = document.createElement(tag);
+  for (const [k, v] of Object.entries(attrs)) { if (k === 'class') e.className = v; else if (k.startsWith('on')) e[k] = v; else if (v !== false && v != null) e.setAttribute(k, v === true ? '' : v); }
+  for (const k of kids.flat()) e.append(k instanceof Node ? k : document.createTextNode(k ?? '')); return e; }
+
+// ---- session ----
+function showLogin(){ me = null; $('app').hidden = true; $('login').hidden = false; $('email').focus(); }
+$('loginForm').onsubmit = async e => { e.preventDefault(); $('loginErr').textContent = '';
+  try { me = await post('/login', {email: $('email').value, password: $('password').value}); $('password').value = ''; start(); }
+  catch (err) { $('loginErr').textContent = err.message; } };
+$('logout').onclick = async () => { try { await post('/logout', {}); } catch {} showLogin(); };
+$('pwBtn').onclick = () => {
+  const box = el('div', {class: 'card', style: 'margin:10px 0'}, el('h2', {}, 'Change your password'),
+    el('input', {type: 'password', id: 'newPw', placeholder: 'New password (10+ chars, upper/lower case, a number)', autocomplete: 'new-password'}),
+    el('div', {class: 'row', style: 'margin-top:10px'}, el('button', {class: 'btn primary', onclick: async () => {
+      try { await post('/me/password', {password: $('newPw').value}); toast('Password changed. Please sign in again.'); showLogin(); } catch (e) { toast(e.message); } }}, 'Save'),
+      el('button', {class: 'btn', onclick: () => box.remove()}, 'Cancel')));
+  document.querySelector('.privacy').after(box); };
+
+// ---- tabs (shown by permission; the server enforces the same rules) ----
+const TABS = [['overview', 'Overview', 'dashboard:read'], ['activity', 'Activity', 'events:read'], ['guardrails', 'Guardrails', 'dashboard:read'],
+              ['devices', 'Devices', 'events:read'], ['staff', 'Staff', 'staff:read'], ['audit', 'Audit log', 'audit:read']];
+function buildTabs(){ const nav = $('tabs'); nav.innerHTML = '';
+  TABS.filter(t => can(t[2])).forEach(([key, label], i) => nav.append(el('button', {'data-key': key, class: i ? '' : 'on', onclick: () => openTab(key)}, label))); }
+function openTab(key){ document.querySelectorAll('#tabs button').forEach(b => b.classList.toggle('on', b.dataset.key === key));
+  document.querySelectorAll('section[data-tab]').forEach(s => s.hidden = s.dataset.tab !== key); LOAD[key]?.(); }
+
+// ---- overview ----
+function bars(target, rows, cls){ const max = Math.max(1, ...rows.map(r => r.n)); $(target).innerHTML = '';
+  if (!rows.length) { $(target).append(el('p', {class: 'muted'}, 'No data yet.')); return; }
+  rows.forEach(r => $(target).append(el('div', {class: 'bar'}, el('span', {}, r.key || '(none)'),
+    el('div', {class: 'track'}, el('div', {class: 'fill ' + (cls ? r.key : ''), style: `width:${r.n / max * 100}%`})), el('span', {class: 'num'}, String(r.n))))); }
+async function loadOverview(){
+  const s = await api('/stats?days=' + $('days').value);
+  $('stats').innerHTML = '';
+  [['Messages', s.messages], ['Devices', s.devices], ['Crisis responses', s.crisis], ['Guardrail rewrites', s.guardrail_rewrites], ['Avg. response', s.avg_latency_ms + ' ms']]
+    .forEach(([k, v]) => $('stats').append(el('div', {class: 'card stat'}, el('div', {class: 'muted small'}, k), el('div', {class: 'n'}, String(v)))));
+  bars('byCategory', s.by_category, true); bars('byRoute', s.by_route, true); bars('byProvider', s.by_provider);
+  const max = Math.max(1, ...s.per_day.map(d => d.n)); $('perDay').innerHTML = '';
+  if (!s.per_day.length) $('perDay').append(el('p', {class: 'muted'}, 'No data yet.'));
+  s.per_day.forEach(d => $('perDay').append(el('div', {class: 'd', title: `${d.day}: ${d.n}`}, el('span', {class: 'small muted'}, String(d.n)),
+    el('div', {class: 'col', style: `height:${d.n / max * 80}%`}), el('span', {class: 'small muted'}, d.day.slice(5)))));
+}
+$('days').onchange = loadOverview;
+
+// ---- activity ----
+['support', 'smalltalk', 'off_topic', 'medical', 'crisis', 'injection', 'abusive'].forEach(c => $('catFilter').append(el('option', {value: c}, c)));
+async function loadEvents(){
+  const {events} = await api('/events?limit=150' + ($('catFilter').value ? '&category=' + $('catFilter').value : ''));
+  const tb = $('events'); tb.innerHTML = '';
+  if (!events.length) tb.append(el('tr', {}, el('td', {colspan: 8, class: 'muted'}, 'No messages yet.')));
+  events.forEach(e => { const flags = (e.flags || '').split(',').filter(Boolean);
+    tb.append(el('tr', {}, el('td', {}, when(e.ts)), el('td', {class: 'mono'}, e.device ? e.device.slice(0, 10) : '-'),
+      el('td', {}, el('span', {class: 'chip ' + (e.category === 'crisis' ? 'crisis' : e.category === 'injection' ? 'warn' : '')}, e.category)),
+      el('td', {}, e.route), el('td', {}, e.provider), el('td', {}, e.latency_ms + ' ms'),
+      el('td', {}, flags.map(f => el('span', {class: 'chip ' + (f.startsWith('output:') ? 'warn' : '')}, f))),
+      el('td', {}, can('devices:manage') && e.device ? el('button', {class: 'btn danger', onclick: () => blockDevice(e.device)}, 'Block device') : '')));
+  }); }
+$('catFilter').onchange = loadEvents; $('refreshEvents').onclick = loadEvents;
+async function blockDevice(device){
+  const reason = 'Blocked from activity view';
+  try { await post('/devices/block', {device, reason}); toast('Device blocked.'); } catch (e) { toast(e.message); } }
+
+// ---- guardrails ----
+async function loadSettings(){
+  const {settings: s} = await api('/settings'); const ro = !can('settings:write');
+  $('s_off').value = s.off_topic_mode; $('s_cls').checked = s.classifier_enabled; $('s_breath').checked = s.breathing_tool_enabled;
+  $('s_max').value = s.max_reply_sentences; $('s_maint').value = s.maintenance_message;
+  $('settingsForm').querySelectorAll('input,select,textarea,button').forEach(x => x.disabled = ro); $('guardRO').hidden = !ro;
+  $('settingsForm').dataset.loaded = '1'; }
+$('settingsForm').onsubmit = async e => { e.preventDefault();
+  try { await post('/settings', {off_topic_mode: $('s_off').value, classifier_enabled: $('s_cls').checked, breathing_tool_enabled: $('s_breath').checked,
+      max_reply_sentences: parseInt($('s_max').value, 10), maintenance_message: $('s_maint').value.trim()}, 'PUT');
+    $('settingsMsg').textContent = 'Saved. Live for the next message.'; setTimeout(() => $('settingsMsg').textContent = '', 3000); }
+  catch (err) { $('settingsMsg').textContent = err.message; } };
+
+// ---- devices ----
+async function loadBlocked(){
+  const {devices} = await api('/devices/blocked'); const tb = $('blocked'); tb.innerHTML = '';
+  if (!devices.length) tb.append(el('tr', {}, el('td', {colspan: 5, class: 'muted'}, 'No blocked devices.')));
+  devices.forEach(d => tb.append(el('tr', {}, el('td', {class: 'mono'}, d.device.slice(0, 10)), el('td', {}, d.reason), el('td', {}, d.blocked_by), el('td', {}, when(d.ts)),
+    el('td', {}, can('devices:manage') ? el('button', {class: 'btn', onclick: async () => { await api('/devices/block/' + d.device, {method: 'DELETE'}); toast('Unblocked.'); loadBlocked(); }}, 'Unblock') : '')))); }
+
+// ---- staff ----
+async function loadStaff(){
+  const {staff} = await api('/staff'); const tb = $('staff'); tb.innerHTML = ''; const manage = can('staff:manage');
+  $('addStaffCard').hidden = !manage;
+  staff.forEach(s => { const self = s.id === me.id;
+    const role = manage && !self ? el('select', {style: 'width:auto', onchange: e => patch(s.id, {role: e.target.value})},
+      ...Object.entries(ROLE_LABEL).map(([v, l]) => el('option', {value: v, selected: v === s.role}, l))) : el('span', {class: 'badge ' + s.role}, ROLE_LABEL[s.role]);
+    tb.append(el('tr', {}, el('td', {}, s.name + (self ? ' (you)' : '')), el('td', {}, s.email), el('td', {}, role),
+      el('td', {}, s.active ? 'Active' : el('span', {class: 'chip crisis'}, 'Deactivated')), el('td', {}, when(s.last_login)),
+      el('td', {}, manage && !self ? el('div', {class: 'row'},
+        el('button', {class: 'btn ' + (s.active ? 'danger' : ''), onclick: () => patch(s.id, {active: !s.active})}, s.active ? 'Deactivate' : 'Reactivate'),
+        el('button', {class: 'btn', onclick: () => resetPw(s)}, 'Reset password')) : '')));
+  }); }
+async function patch(id, body){ try { await post('/staff/' + id, body, 'PATCH'); toast('Updated. They have been signed out.'); } catch (e) { toast(e.message); } loadStaff(); }
+function resetPw(s){ const pw = Array.from(crypto.getRandomValues(new Uint8Array(9)), b => 'ABCDEFGHJKMNPQRSTUVWXYZabcdefghjkmnpqrstuvwxyz23456789'[b % 55]).join('') + 'a7Q';
+  post('/staff/' + s.id + '/password', {password: pw}).then(() => {
+    const note = el('div', {class: 'card', style: 'margin-top:10px'}, el('b', {}, `New temporary password for ${s.email}: `), el('span', {class: 'mono'}, pw),
+      el('div', {class: 'muted small'}, 'Share it privately. It is shown only once.'), el('button', {class: 'btn', style: 'margin-top:8px', onclick: () => note.remove()}, 'Done'));
+    $('staff').closest('.card').append(note); }).catch(e => toast(e.message)); }
+$('addStaff').onsubmit = async e => { e.preventDefault(); $('addErr').textContent = '';
+  try { await post('/staff', {name: $('n_name').value, email: $('n_email').value, role: $('n_role').value, password: $('n_pw').value});
+    e.target.reset(); toast('Staff member added.'); loadStaff(); } catch (err) { $('addErr').textContent = err.message; } };
+
+// ---- audit ----
+async function loadAudit(){
+  const {entries} = await api('/audit?limit=200'); const tb = $('audit'); tb.innerHTML = '';
+  entries.forEach(a => { let d = ''; try { d = Object.entries(JSON.parse(a.detail || '{}')).map(([k, v]) => `${k}: ${v}`).join(', '); } catch {}
+    tb.append(el('tr', {}, el('td', {}, when(a.ts)), el('td', {}, a.actor_email || '-'),
+      el('td', {}, el('span', {class: 'chip ' + (a.action.startsWith('login.failed') || a.action.endsWith('locked') ? 'crisis' : '')}, a.action)),
+      el('td', {}, a.target || ''), el('td', {class: 'small'}, d))); }); }
+
+const LOAD = {overview: loadOverview, activity: loadEvents, guardrails: loadSettings, devices: loadBlocked, staff: loadStaff, audit: loadAudit};
+function start(){ $('login').hidden = true; $('app').hidden = false;
+  $('who').textContent = me.name; $('role').textContent = ROLE_LABEL[me.role]; $('role').className = 'badge ' + me.role;
+  buildTabs(); openTab('overview'); }
+api('/me').then(m => { me = m; start(); }).catch(() => showLogin());
+</script></body></html>

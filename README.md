@@ -1,5 +1,7 @@
 # Pocket Pal
 
+[![CI](https://github.com/K-Swati/pocket-pal/actions/workflows/ci.yml/badge.svg)](https://github.com/K-Swati/pocket-pal/actions/workflows/ci.yml)
+
 A voice companion to talk to when you feel sad, lonely or low. Pocket Pal listens, keeps you company and answers in a warm voice.
 
 > **Pocket Pal is an AI, not a therapist, counsellor or medical service.** It does not diagnose, treat or give medical advice. If you are in danger or thinking about harming yourself, contact a crisis line or your local emergency number.
@@ -76,6 +78,35 @@ pocketpal/
 tests/            unit tests (offline)
 tests/e2e/        Playwright browser tests (real Chromium, fake mic and services)
 ```
+
+## How a message is handled
+
+Every message goes through an explicit pipeline (`pocketpal/agent.py`):
+
+1. **Classify**: rules in code first (crisis words, prompt-injection attempts, medical and off-topic requests), then a small model-based classifier that catches indirect crisis language. Crisis from either check wins.
+2. **Route**: crisis protocol (fixed reply and regional helplines, no model involved), refusal for injection attempts, a gentle redirect for off-topic tasks, a boundary for medical questions, a breathing exercise when someone sounds anxious, or normal support.
+3. **Respond**: the model answers with the persona plus a directive for that route.
+4. **Verify**: the reply is checked for code, medical advice or diagnosis, claiming to be human, and talk about its instructions. It is rewritten once, then replaced with a safe fallback if it still fails.
+
+## Admin console and roles
+
+Open `/admin`. Create the first super admin with:
+
+```bash
+python -m pocketpal create-superadmin
+```
+
+(or set `SUPERADMIN_EMAIL` / `SUPERADMIN_PASSWORD` once on a server).
+
+| Role | Can |
+|---|---|
+| Viewer | See the dashboard, activity metadata, guardrail settings and audit log |
+| Admin | Everything above, plus change guardrail settings, block or unblock devices, see staff |
+| Super admin | Everything above, plus add staff, change roles, deactivate, reset passwords |
+
+The server checks every permission. Role changes, deactivation and password resets sign that person out everywhere. There is always at least one active super admin. All changes and sign-in attempts go to the audit log.
+
+**Privacy:** conversations are never stored on the server. Admins see only metadata (category, route, model, latency) and an anonymous hashed device id.
 
 ## License
 

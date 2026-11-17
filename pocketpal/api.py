@@ -1,7 +1,13 @@
-"""HTTP API. Stateless: the browser keeps the conversation and memory, the server keeps nothing."""
+"""HTTP API.
+
+Conversations stay in the browser: the server never stores what people said. It keeps only staff accounts,
+settings, an audit log and per-message metadata (category, route, provider, latency) for the admin console.
+"""
 
 from __future__ import annotations
 
+import hashlib
+import hmac
 import logging
 from pathlib import Path
 from typing import Literal, Optional
@@ -18,18 +24,21 @@ load_dotenv(_ROOT.parent / ".env")
 if not os.environ.get("GROQ_API_KEY") and os.environ.get("GROK_API_KEY", "").startswith("gsk_"):
     os.environ["GROQ_API_KEY"] = os.environ["GROK_API_KEY"]
 
-from fastapi import FastAPI, File, HTTPException, UploadFile  # noqa: E402
+from fastapi import FastAPI, File, HTTPException, Request, UploadFile  # noqa: E402
 from fastapi.responses import FileResponse, Response  # noqa: E402
 from fastapi.staticfiles import StaticFiles  # noqa: E402
 from pydantic import BaseModel, Field  # noqa: E402
 
-from pocketpal import persona, safety  # noqa: E402
+from pocketpal import persona  # noqa: E402
+from pocketpal.admin import build_router  # noqa: E402
+from pocketpal.agent import Companion, Turn  # noqa: E402
+from pocketpal.auth import Auth, create_staff, load_secret  # noqa: E402
+from pocketpal.db import DB  # noqa: E402
 from pocketpal.llm import Provider, build_providers, chat_with_fallback  # noqa: E402
 from pocketpal.speech import SpeechError, build_stt, build_tts, speakable  # noqa: E402
 
 log = logging.getLogger("pocketpal")
 STATIC = Path(__file__).parent / "static"
-MAX_HISTORY = 20
 MAX_AUDIO = 10 * 1024 * 1024
 
 
@@ -50,6 +59,9 @@ class ChatOut(BaseModel):
     crisis: bool
     helplines: list[dict[str, str]]
     provider: str
+    category: str = "support"
+    route: str = "support"
+    action: Optional[dict] = None
 
 
 class SummaryIn(BaseModel):
@@ -62,35 +74,49 @@ class SpeakIn(BaseModel):
     voice: Literal["female", "male"] = "female"
 
 
-def create_app(providers: list[Provider] | None = None, stt=..., tts=...) -> FastAPI:
-    app = FastAPI(title="Pocket Pal", version="0.1.0")
+BLOCKED_REPLY = "Pocket Pal isn't available on this device right now."
+
+
+def create_app(providers: Optional[list[Provider]] = None, stt=..., tts=..., db: Optional[DB] = None,
+               secret: Optional[bytes] = None) -> FastAPI:
+    app = FastAPI(title="Pocket Pal", version="0.2.0")
     providers = providers if providers is not None else build_providers()
     stt = build_stt() if stt is ... else stt
     tts = build_tts() if tts is ... else tts
+    db = db or DB()
+    secret = secret or load_secret()
+    auth = Auth(db, secret)
+    companion = Companion(providers, db.settings)
+    bootstrap_super_admin(db)
+
+    def device_of(request: Request) -> Optional[str]:
+        """The browser sends a random anonymous id; we keep only a keyed hash of it."""
+        raw = request.headers.get("x-device-id", "")[:64]
+        return hmac.new(secret, raw.encode(), hashlib.sha256).hexdigest()[:24] if raw else None
+
+    def guard(request: Request) -> Optional[str]:
+        device = device_of(request)
+        if db.is_blocked(device):
+            raise HTTPException(403, BLOCKED_REPLY)
+        return device
 
     @app.get("/api/health")
     def health() -> dict:
         return {"status": "ok", "llm": [p.name for p in providers], "stt": stt is not None, "tts": tts is not None}
 
     @app.post("/api/chat", response_model=ChatOut)
-    def chat(req: ChatIn) -> ChatOut:
-        last = req.messages[-1]
-        if last.role != "user":
+    def chat(req: ChatIn, request: Request) -> ChatOut:
+        device = guard(request)
+        if req.messages[-1].role != "user":
             raise HTTPException(400, "last message must be from the user")
-        if safety.is_crisis(last.content):
-            return ChatOut(reply=safety.crisis_reply(req.region), crisis=True,
-                           helplines=safety.helplines(req.region), provider="safety")
-        system = persona.SYSTEM_PROMPT
-        if req.name and req.name != "Pocket Pal":
-            system += f"\nYour name is {req.name}. Use it if you introduce yourself; you are still an AI friend.\n"
-        if req.memory.strip():
-            system += "\n" + persona.MEMORY_PREFIX + req.memory.strip()
-        msgs = [{"role": "system", "content": system}] + [m.model_dump() for m in req.messages[-MAX_HISTORY:]]
-        reply, used = chat_with_fallback(providers, msgs)
-        return ChatOut(reply=reply, crisis=False, helplines=[], provider=used)
+        res = companion.respond(Turn([m.model_dump() for m in req.messages], req.memory, req.region, req.name))
+        db.event("chat", device, res.category, res.route, tuple(res.flags) + tuple(res.trace), res.provider, res.latency_ms)
+        return ChatOut(reply=res.reply, crisis=res.crisis, helplines=res.helplines, provider=res.provider,
+                       category=res.category, route=res.route, action=res.action)
 
     @app.post("/api/summarize")
-    def summarize(req: SummaryIn) -> dict:
+    def summarize(req: SummaryIn, request: Request) -> dict:
+        guard(request)
         convo = "\n".join(f"{m.role}: {m.content}" for m in req.messages[-40:])
         user = (f"Previous notes:\n{req.memory}\n\n" if req.memory else "") + f"Conversation:\n{convo}"
         notes, _ = chat_with_fallback(providers, [{"role": "system", "content": persona.SUMMARY_PROMPT},
@@ -98,7 +124,8 @@ def create_app(providers: list[Provider] | None = None, stt=..., tts=...) -> Fas
         return {"memory": notes[:2000]}
 
     @app.post("/api/transcribe")
-    async def transcribe(audio: UploadFile = File(...)) -> dict:
+    async def transcribe(request: Request, audio: UploadFile = File(...)) -> dict:
+        guard(request)
         if stt is None:
             raise HTTPException(503, "server speech-to-text not configured")
         data = await audio.read()
@@ -111,7 +138,8 @@ def create_app(providers: list[Provider] | None = None, stt=..., tts=...) -> Fas
             raise HTTPException(502, "speech-to-text failed") from e
 
     @app.post("/api/speak")
-    def speak(req: SpeakIn) -> Response:
+    def speak(req: SpeakIn, request: Request) -> Response:
+        guard(request)
         if tts is None:
             return Response(status_code=204)  # browser uses its own voice
         try:
@@ -126,8 +154,22 @@ def create_app(providers: list[Provider] | None = None, stt=..., tts=...) -> Fas
     def index() -> FileResponse:
         return FileResponse(STATIC / "index.html")
 
+    @app.get("/admin", include_in_schema=False)
+    def admin_page() -> FileResponse:
+        return FileResponse(STATIC / "admin.html")
+
+    app.include_router(build_router(db, auth))
     app.mount("/static", StaticFiles(directory=STATIC), name="static")
     return app
 
 
-app = create_app()
+def bootstrap_super_admin(db: DB) -> None:
+    """First run on a server without a terminal: create the first super admin from env vars, once."""
+    email, password = os.environ.get("SUPERADMIN_EMAIL"), os.environ.get("SUPERADMIN_PASSWORD")
+    if email and password and not db.one("SELECT 1 AS x FROM staff LIMIT 1"):
+        create_staff(db, email, os.environ.get("SUPERADMIN_NAME", "Super admin"), "super_admin", password)
+        db.audit(None, "staff.bootstrap", email, {"role": "super_admin"})
+        log.warning("created first super admin %s from environment; remove SUPERADMIN_PASSWORD now", email)
+
+
+app = create_app() if os.environ.get("POCKETPAL_NO_APP") != "1" else None

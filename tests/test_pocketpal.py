@@ -4,6 +4,7 @@ from fastapi.testclient import TestClient
 
 from pocketpal import safety
 from pocketpal.api import create_app
+from pocketpal.db import DB
 from pocketpal.llm import MockProvider, OpenAICompatible, ProviderError, chat_with_fallback, SORRY
 from pocketpal.speech import ChainTTS, ElevenLabsTTS, GroqWhisper, SpeechError, speakable
 
@@ -26,8 +27,10 @@ class Failing:
         raise ProviderError("429")
 
 
-def client(providers, stt=None, tts=None):
-    return TestClient(create_app(providers=providers, stt=stt, tts=tts))
+def client(providers, stt=None, tts=None, classifier=False):
+    db = DB(":memory:")
+    db.set_setting("classifier_enabled", classifier)
+    return TestClient(create_app(providers=providers, stt=stt, tts=tts, db=db, secret=b"test-secret"))
 
 
 @pytest.mark.parametrize("text", [
