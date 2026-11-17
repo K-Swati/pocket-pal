@@ -6,6 +6,16 @@ A voice companion to talk to when you feel sad, lonely or low. Pocket Pal listen
 
 > **Pocket Pal is an AI, not a therapist, counsellor or medical service.** It does not diagnose, treat or give medical advice. If you are in danger or thinking about harming yourself, contact a crisis line or your local emergency number.
 
+<p align="center">
+  <img src="docs/screenshots/welcome.png" width="260" alt="Welcome screen with Mochi and the AI notice">
+  &nbsp;&nbsp;
+  <img src="docs/screenshots/chat.png" width="260" alt="A conversation with Miso in the Night theme">
+</p>
+
+**Five characters, six themes.** Each character keeps its own colours, and each theme has its own animated scene.
+
+![Lavender, Sunrise, Ocean, Meadow, Candy and Night themes](docs/screenshots/themes.png)
+
 ## What it does
 
 - **Talk, don't type.** Tap the mic and speak; a short pause sends it. In hands-free mode it keeps listening after each reply, like a phone call.
